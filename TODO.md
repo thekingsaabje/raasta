@@ -25,6 +25,12 @@
 - [ ] CSP header; admin 2FA; split motion library from the main bundle (index ~135 KB gzip).
 - [ ] CI: run unit tests + Playwright on GitHub Actions (free tier).
 
-## URGENT (2026-10-25, end of session)
-- [ ] Per-level rules (HEC degree, ANSO/MAECI age, Boell degree) are stored as all-mandatory. Live fix applied: closed-cycle verified rules + Boell degree rules demoted to NEEDS_REVIEW (manual SQL; mirror it in scripts/build-verification.mjs). Add a forLevels field to rules, a zod rule schema in the build script, try/catch around checkRule in assess, and a test that runs assess over the verification data. Then merge dev to main.
-- [ ] Delete live e2e accounts after the background test run: DELETE FROM users WHERE email LIKE 'e2e-%@raasta.test'; and the E2E error report + review task.
+## Done 2026-10-25 (session 4)
+- [x] forLevels on rules, zod rule schema, safe assess, closed-call rules never reject, real-data regression test.
+- [x] Conversational Cost Planner with 3 scenarios, official cost references, saved versions, dashboard card.
+
+## Cost Planner follow-ups
+- [ ] Fill cost-figure gaps (see REPORT.md): DE insurer tariff + 2026/27 semester fees; IT PKR visa/service fee + Lombardy/Veneto DSU; CN university fees + self-funded bank minimum; fresh CSC stipend page.
+- [ ] Admin screen to review/edit `cost_references` (today: research/finance-sources.json → npm run refs:build).
+- [ ] Optional: match tuition references to the chosen university automatically.
+- [ ] Firecrawl credits are low — founder decides whether to top up before the next research round.

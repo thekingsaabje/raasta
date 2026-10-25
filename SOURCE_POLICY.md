@@ -23,6 +23,13 @@ Forums, social media, agents and unofficial directories: **discovery only**, nev
 - Deadline text is stored exactly as published; `deadline_date` is set only after verification.
 - Paid reports (future): recheck material sources ≤72h before delivery, or disclose that it was not possible.
 
+## Cost and proof-of-funds figures (Cost Planner)
+- Stored in `cost_references` from `research/finance-sources.json` (`npm run refs:build`). Status: VERIFIED (verbatim official quote,
+  current period), OFFICIAL_ESTIMATE (an official average or guidance), NEEDS_REVIEW (outdated, other route or conflicting; shown collapsed).
+- Proof-of-funds rules are requirements to SHOW money and are never added to costs. Scholarship benefits are income, never costs.
+- Ranges prefill with the upper end. Student-entered figures are labelled "Your figure". Unknown amounts are excluded and listed.
+- Exchange rates: ExchangeRate-API open access (indicative, dated, cached 12 h, attributed); students can override; no rate → no conversion.
+
 ## Coverage measurement
 Three separate numbers on the admin dashboard: source inventory coverage, scholarship-record coverage, evidence completeness.
 Never claim completeness; an absent record is not proof an award does not exist.

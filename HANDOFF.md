@@ -21,6 +21,12 @@ Pipeline: `research/verification.json` → `npm.cmd run verify:build` → `seed/
 two runs `outcome: ok`, 6 checked each (5 and 4 ok), CPU 10 ms / 38 ms, wall 8 s / 25 s, no false "changed".
 Monitor never changes a scholarship status; change → one `source_changed` task; 3 failures → `source_failing`; past deadlines → `deadline_passed`.
 
+## Cost Planner (session 4)
+- UI: `src/pages/Costs.tsx` + `src/pages/costs/*`; engine `shared/planner.ts`; API `worker/planner.ts`; migration 0003
+  (`cost_references`, `fin_assessments` versioned per plan_id, `fx_rates`). References loaded live from `seed/cost-references.sql` (70 rows).
+- Rates from open.er-api.com (free, attribution required, link shown in UI). If the call fails, cached rates or manual entry.
+- Session-4 test status: 84 Vitest, 22/22 Playwright live (after main deploy) + 4/4 planner tests live after polish. See REPORT.md.
+
 ## Tests (2026-10-25)
 - `npm.cmd test`: 63/63 (unit, API, monitor, reset links, seed + verification idempotency).
 - `npm.cmd run test:e2e` locally: 18/18. Against live: 18/18 earlier this session on the redesign build; after the final deploy see REPORT.md.
