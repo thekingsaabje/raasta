@@ -5,7 +5,7 @@
 - Live: **https://raasta.raasta.workers.dev** (Cloudflare account thekingsaabje@gmail.com, Worker `raasta`).
 - D1 `raasta-db` (id a10825fc-…, region WNAM — US West; created there because of the local proxy. Recreating in APAC was blocked; consider read replication later).
   Migrated and seeded once on 2026-10-25 (24 sources, 30 scholarships incl. 2 [TEST], 83 rules, 5 packages). **Do not re-run the seed.**
-- No admin account on live yet: founder registers, then run the promote command below.
+- Admin on live: thekingsaabje@gmail.com (promoted 2026-10-25 via D1, logged in audit_log).
 - Local run: `npm.cmd run dev` → http://localhost:5173. Local admin test account email is in `.dev.vars` (ADMIN_EMAILS).
 - Live checks done 2026-10-25: Playwright 10/10 against the live URL (sign-up/login fine → PBKDF2 100k fits the CPU limit so far);
   signed-out /api/me and /api/admin → 401; cross-origin POST → 403; manual source-check run on live: 4/5 OK, campuschina.org returns 412 (blocks bots — needs manual checks).
