@@ -107,21 +107,54 @@ test("J4 · comparing Germany and Italy", async ({ page }) => {
   await expect(dialog).toBeHidden();
 });
 
-test("J5 · limited funding: cost planner and funding actions", async ({ page }) => {
+test("J5 · limited funding with a confirmed award (China, CNY at 40 PKR)", async ({ page }) => {
   await signup(page, "j5");
-  await page.goto("/costs");
-  await page.getByLabel("Scholarship (optional)").selectOption("test-cn-master");
-  await page.getByLabel("Amount").nth(0).fill("0");
-  await page.getByLabel("Currency").nth(1).selectOption("CNY");
-  await page.getByLabel("Amount").nth(1).fill("3500");
-  await page.getByLabel("Amount").nth(4).fill("180000");
-  await expect(page.getByText(/No exchange rate entered for CNY/)).toBeVisible();
-  await page.getByLabel("CNY").fill("39");
-  await expect(page.getByText(/Stipend usually starts after arrival/)).toBeVisible();
-  await expect(page.getByText(/does not automatically satisfy visa proof-of-funds/)).toBeVisible();
-  await expect(page.getByText("Funding gap")).toBeVisible();
   await page.goto("/app");
-  await expect(page.getByText("Estimate your budget")).toBeVisible();
+  await expect(page.getByText("Run the Cost Planner")).toBeVisible();
+  await page.goto("/costs");
+  await page.evaluate(() => localStorage.clear());
+  await page.goto("/costs");
+  await page.getByRole("button", { name: "Start planning" }).click();
+  const next = () => page.getByRole("button", { name: /Continue|See my results/ }).click();
+  await page.getByRole("radio", { name: "China" }).click();
+  await next();
+  await page.getByRole("button", { name: "Skip", exact: true }).click();
+  await page.getByRole("radio", { name: "Master's" }).click();
+  await next();
+  await next(); // 24 months
+  await page.getByRole("radio", { name: "Applying from Pakistan" }).click();
+  await next();
+  await page.getByRole("radio", { name: "I have a full scholarship offer" }).click();
+  await next();
+  await page.getByLabel("Award name").fill("CSC Type B");
+  await page.getByLabel("Stipend (cash)", { exact: true }).fill("3000");
+  await page.getByLabel("Accommodation").selectOption("full");
+  await page.getByLabel("Insurance").selectOption("full");
+  await page.getByLabel("Travel").selectOption("none");
+  await next();
+  await page.getByLabel("Tuition", { exact: true }).fill("30000");
+  await page.getByLabel("Tuition frequency").selectOption("year");
+  await next();
+  await page.getByRole("button", { name: "Skip", exact: true }).click(); // dorm covered by the award
+  await page.getByLabel("Living costs", { exact: true }).fill("1500");
+  await next();
+  await page.getByRole("checkbox", { name: /Flight to destination/ }).check();
+  await page.getByLabel("Flight to destination amount", { exact: true }).fill("120000");
+  await next();
+  await page.getByLabel("Your savings", { exact: true }).fill("200000");
+  await next();
+  await page.getByLabel("PKR per CNY").fill("40");
+  // Hand-calculated: tuition 2 × 30,000 + living 24 × 1,500 = 96,000 CNY = 3,840,000 + flight 120,000 = 3,960,000 PKR.
+  // Confirmed award: tuition 2,400,000 + stipend (23 paid months × 120,000 = 2,760,000, capped at living 1,440,000).
+  // You still pay 120,000 (the flight); funds 200,000 → no gap. Without the award the gap is 3,760,000.
+  const cards = page.locator(".scenario");
+  await expect(cards.first()).toContainText("PKR 3,960,000");
+  await expect(cards.first()).toContainText("PKR 3,760,000");
+  const confirmed = cards.filter({ hasText: "Confirmed award" });
+  await expect(confirmed).toContainText("PKR 120,000");
+  await expect(confirmed).toContainText("None");
+  await confirmed.click(); // details follow the selected scenario
+  await expect(page.getByText(/first month must be paid from your own funds/).first()).toBeVisible();
 });
 
 test("J6 · several applications and writing documents", async ({ page }) => {

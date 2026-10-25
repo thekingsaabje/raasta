@@ -105,6 +105,16 @@ describe("cost planner — scholarships", () => {
     expect(c.rows.find((x) => x.category === "living")!.covered).toBe(1_800_000); // 20 paid months × 90,000
   });
 
+  it("catalogued award terms: monthly stipend stored as `period` is read as monthly", () => {
+    const t = termsFromCoverage("csc", "CSC", { tuition: "full", accommodation: "full", stipend: { amount: 3000, currency: "CNY", period: "month" } }, src);
+    expect(t.stipend).toEqual({ amount: 3000, currency: "CNY", per: "month", startsAfterArrival: true });
+    const china: PlanInput = { months: 12, rates: { pkrPer: { CNY: 40 }, source: "t", date: null }, costs: [line("living", "living", 2500, "CNY", "month", "during_study")], awards: [t], funds: {} };
+    const p = plan(china).scenarios.find((s) => s.key === "potential")!;
+    // stipend pool: 11 paid months (first month after arrival is unpaid) × 3,000 × 40 = 1,320,000 PKR;
+    // living cost: 12 × 2,500 × 40 = 1,200,000 PKR → coverage is capped at the living cost.
+    expect(p.covered).toBe(1_200_000);
+  });
+
   it("'fully funded' label without documented terms covers nothing", () => {
     const t = termsFromCoverage("x", "Fully funded (label only)", {}, src);
     const p = plan({ ...germany, awards: [t] }).scenarios.find((s) => s.key === "potential")!;

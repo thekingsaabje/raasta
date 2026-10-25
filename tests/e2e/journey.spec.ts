@@ -73,9 +73,10 @@ test("dashboard is private when signed out", async ({ page }) => {
   expect(status).toBe(401);
 });
 
-test("cost planner computes a gap", async ({ page }) => {
+test("cost planner opens with the conversation", async ({ page }) => {
   await page.goto("/costs");
-  await page.getByLabel("Amount").nth(4).fill("200000"); // travel, PKR
-  await expect(page.getByText("Funding gap")).toBeVisible();
-  await expect(page.getByText("PKR 200,000").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Cost Planner" })).toBeVisible();
+  await page.getByRole("button", { name: "Start planning" }).click();
+  await expect(page.getByRole("heading", { name: "Where do you want to study?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue" })).toBeDisabled(); // must answer first
 });

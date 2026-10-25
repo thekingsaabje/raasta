@@ -336,7 +336,11 @@ export function termsFromCoverage(id: string, name: string, cov: Record<string, 
     scholarshipId: id,
     source: src,
     tuition: c.tuition === "full" ? { type: "full" } : c.tuition === "none" ? { type: "none" } : c.tuitionAmount ? { type: "amount", ...c.tuitionAmount } : { type: "unknown" },
-    stipend: c.stipend ? { ...c.stipend, startsAfterArrival: true } : null,
+    // Scholarship records store the stipend period as `period`; the planner uses `per`.
+    stipend:
+      c.stipend && typeof c.stipend.amount === "number" && c.stipend.currency
+        ? { amount: c.stipend.amount, currency: c.stipend.currency, per: (c.stipend.per ?? c.stipend.period) === "year" ? "year" : "month", startsAfterArrival: true }
+        : null,
     accommodation: c.accommodation === "full" ? "full" : c.accommodation === "none" ? "none" : "unknown",
     insurance: c.insurance === "full" ? "full" : c.insurance === "none" ? "none" : "unknown",
     travel: c.travel === "full" ? "full" : c.travel === "none" ? "none" : "unknown",

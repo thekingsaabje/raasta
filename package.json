@@ -16,6 +16,7 @@
     "db:seed:remote": "wrangler d1 execute raasta-db --remote --file=./seed/seed.sql",
     "seed:build": "node scripts/build-seed.mjs",
     "verify:build": "node scripts/build-verification.mjs",
+    "refs:build": "node scripts/build-cost-refs.mjs",
     "db:verify:local": "wrangler d1 execute raasta-db --local --file=./seed/verification-update.sql",
     "deploy": "vite build && wrangler deploy"
   },

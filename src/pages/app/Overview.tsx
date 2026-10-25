@@ -98,6 +98,8 @@ export function Overview() {
         </Reveal>
       </div>
 
+      <FinanceCard finance={data.finance} />
+
       <Reveal>
         <section className="panel panel-flush">
           <div className="panel-head"><h3>Applications</h3><Link to="/app/applications" className="btn btn-soft btn-sm">Manage</Link></div>
@@ -144,5 +146,47 @@ export function Overview() {
         </section>
       </div>
     </div>
+  );
+}
+
+const pkr = (n: number) => `PKR ${Math.round(n).toLocaleString("en-PK")}`;
+
+/** Latest saved financial plan. Kept separate from application progress on purpose. */
+function FinanceCard({ finance }: { finance: any }) {
+  if (!finance)
+    return (
+      <section className="panel row between" aria-label="Financial plan">
+        <div><h3>Financial plan</h3><p className="muted" style={{ fontSize: 14.5, marginTop: 4 }}>See what your studies cost with and without a scholarship, and the cash you need at each stage.</p></div>
+        <Link to="/costs" className="btn btn-primary btn-sm">Open Cost Planner <ArrowRight size={14} /></Link>
+      </section>
+    );
+  const sc = finance.summary.scenarios as any[];
+  const confirmed = sc.find((s) => s.key === "confirmed");
+  const potential = sc.filter((s) => s.key === "potential");
+  const current = confirmed ?? sc[0];
+  const cell = (label: string, value: string, sub: string, color?: string, first?: boolean) => (
+    <div className="stack" style={{ padding: 20, "--gap": "4px", borderLeft: first ? undefined : "1px solid var(--line)" } as any}>
+      <span className="tiny">{label}</span><span className="stat" style={{ fontSize: 24, color }}>{value}</span><span className="tiny">{sub}</span>
+    </div>
+  );
+  return (
+    <section className="panel panel-flush" aria-label="Financial plan">
+      <div className="panel-head">
+        <div><h3>Financial plan · {finance.title}</h3><div className="tiny" style={{ marginTop: 2 }}>Version {finance.version} · saved {fmtDate(finance.created_at)} · tracked separately from application progress</div></div>
+        <Link to={`/costs?plan=${finance.plan_id}`} className="btn btn-soft btn-sm">Open plan</Link>
+      </div>
+      <div className="grid stat-strip" style={{ gap: 0 }}>
+        <div className="stack" style={{ padding: 20, "--gap": "4px" } as any}><span className="tiny">Scenario in use</span><strong style={{ fontSize: 15 }}>{current.title}</strong><span className="tiny">{confirmed ? "Based on your confirmed award" : "No confirmed award, so planning without one"}</span></div>
+        {cell("You'd still pay", pkr(current.remaining), "whole programme")}
+        {cell("Funding gap", current.gap ? pkr(current.gap) : "None", "vs funds you have", current.gap ? "var(--bad)" : "var(--ok)")}
+        {cell("Cash before & on arrival", pkr(current.upfrontCash), "first stages")}
+      </div>
+      <div className="row" style={{ padding: "12px 20px", borderTop: "1px solid var(--line)", "--gap": "8px" } as any}>
+        <span className="badge b-ok">Confirmed funding: {confirmed ? pkr(confirmed.covered) : "none"}</span>
+        <span className="badge b-warn">Potential funding: {potential.length ? potential.map((p) => pkr(p.covered)).join(" / ") : "none"} (not counted)</span>
+        {finance.summary.missing.length > 0 && <span className="badge b-bad">{finance.summary.missing.length} unknown cost(s)</span>}
+        {finance.summary.evidence.VERIFIED === 0 && <span className="badge b-neutral">No verified official figures yet</span>}
+      </div>
+    </section>
   );
 }
