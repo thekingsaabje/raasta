@@ -1,9 +1,16 @@
 # Handoff — last updated 2026-10-25
 
 ## Where things are
-- Code: `C:\Users\Kingsaab\Documents\Raasta`, git branch `dev` (no remote yet — GitHub CLI not logged in).
-- Deployment: **not deployed yet** — Cloudflare CLI not logged in. `wrangler.jsonc` has a placeholder `database_id`.
+- Code: `C:\Users\Kingsaab\Documents\Raasta`; private repo https://github.com/thekingsaabje/raasta (branches `main`, `dev`; work on `dev`).
+- Live: **https://raasta.raasta.workers.dev** (Cloudflare account thekingsaabje@gmail.com, Worker `raasta`).
+- D1 `raasta-db` (id a10825fc-…, region WNAM — US West; created there because of the local proxy. Recreating in APAC was blocked; consider read replication later).
+  Migrated and seeded once on 2026-10-25 (24 sources, 30 scholarships incl. 2 [TEST], 83 rules, 5 packages). **Do not re-run the seed.**
+- No admin account on live yet: founder registers, then run the promote command below.
 - Local run: `npm.cmd run dev` → http://localhost:5173. Local admin test account email is in `.dev.vars` (ADMIN_EMAILS).
+- Live checks done 2026-10-25: Playwright 10/10 against the live URL (sign-up/login fine → PBKDF2 100k fits the CPU limit so far);
+  signed-out /api/me and /api/admin → 401; cross-origin POST → 403; manual source-check run on live: 4/5 OK, campuschina.org returns 412 (blocks bots — needs manual checks).
+  Cron trigger first fires 03:17 UTC 2026-10-26 — **not yet observed**; verify with the `source_checks` count query below.
+  Throwaway e2e accounts were deleted from live afterwards (`DELETE FROM users WHERE email LIKE 'e2e-%@raasta.test'`) — do this after every live e2e run.
 
 ## Works today (tested)
 - Public site: home, catalogue (search, filters, compare up to 3), scholarship detail with per-rule evidence, error reports, pricing (payments off), cost planner, verification and privacy pages.
@@ -20,7 +27,7 @@
 - `npm.cmd test`: 55/55 passed (eligibility, finance, progress, writing, checklist, API auth/isolation/admin/dashboard/writing/privacy/monitor, seed integrity).
 - `npm.cmd run test:e2e` (local, desktop + mobile Chrome): 10/10 passed.
 
-## Deploy steps (once logged in)
+## Deploy steps (steps 1–2 already done; for future deploys run only migrations for new files + step 4)
 1. `npx.cmd wrangler d1 create raasta-db` → put the id in `wrangler.jsonc`.
 2. `npm.cmd run db:migrate:remote`, then **first deploy only** `npm.cmd run db:seed:remote`
    (the seed deletes all requirements and replaces scholarships — never re-run it on a live database with real reviews or students).

@@ -1,9 +1,8 @@
 # Raasta — delivery report (2026-10-25)
 
 ## 1. Links
-- **GitHub repo:** not created yet. GitHub CLI is not logged in (`gh auth login` waiting for the founder).
-- **Deployed URL:** not deployed yet. Cloudflare CLI login timed out (`wrangler login` needs "Allow" in the browser).
-- Code is safe locally in `Documents\Raasta`, branch `dev`, 3 commits.
+- **GitHub repo (private):** https://github.com/thekingsaabje/raasta (branches `main` and `dev`)
+- **Live site:** https://raasta.raasta.workers.dev (free workers.dev address; custom domain prepared in `wrangler.jsonc`, not bought)
 
 ## 2. What genuinely works (tested locally)
 | Area | Working |
@@ -20,8 +19,10 @@
 
 ## 3. Tests
 - Unit + API (Vitest, real SQL via Node SQLite): **55/55 passed**. Covers eligibility edge cases, finance, progress, checklist, writing checks, auth, cross-user isolation, admin separation, rate limit, CSRF, deadline-change propagation, evidence for submitted stage, account deletion, source monitor, seed integrity.
-- End-to-end (Playwright, desktop + mobile Chrome, local): **10/10 passed**.
-- Not yet run against a deployed URL.
+- End-to-end (Playwright, desktop + mobile Chrome): **10/10 passed locally and 10/10 passed against the live URL**.
+- Live spot checks: signed-out student/admin APIs → 401, cross-origin POST → 403, health → production.
+- Live source-checker run: 4/5 pages fetched; campuschina.org answers 412 (blocks automated fetches → manual review needed).
+- The scheduled (cron) run first fires 03:17 UTC on 2026-10-26 — not yet observed.
 
 ## 4. Scholarship coverage (measured, limited)
 - 24 official sources (CN 8, PK 2, DE 6, IT 8), 1 inaccessible (EDISU Piemonte).
@@ -38,13 +39,13 @@
 - Projected: free until about 100k requests/day. Workers Paid ($5/month) only if the CPU limit or traffic requires it — needs your approval.
 
 ## 7. Known limitations and risks
-- Password hashing may exceed the free plan's per-request CPU limit. The work factor can be tuned without breaking accounts (HANDOFF step 5).
+- Password hashing passed live sign-up/login tests on the free plan; if Cloudflare ever reports CPU errors, the work factor can be tuned without breaking accounts (HANDOFF step 5).
+- Database is in US West (created there due to the local network proxy), so it is a little slower from Pakistan; can be moved/replicated later.
 - No email verification or password reset yet, so admin is granted by a one-off database command, not by email.
 - Privacy notice is a draft; legal review needed before real student data at scale.
 - Bundle is ~146 KB gzipped (could be split). No CSP header yet.
 
 ## 8. Exact next steps
-1. Founder: finish both logins (see chat).
-2. Claude: create private repo `raasta`, push `dev`; create D1, migrate, seed (first time only), deploy to workers.dev; run e2e against the live URL; check CPU and cron.
-3. Founder registers on the live site → Claude promotes the account to admin.
+1. Founder registers on the live site → Claude promotes the account to admin (one-off D1 command).
+2. After 03:17 UTC, confirm the scheduled source check ran.
 4. Verify the 28 records one by one in Admin → Scholarships (start with the open ones: Polimi, Heinrich Böll).

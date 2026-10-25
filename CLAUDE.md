@@ -5,7 +5,8 @@ Pakistan-first study-abroad platform (China, Germany, Italy). Read HANDOFF.md fi
 ## Stack
 - React 19 + Vite 8 SPA (`src/`), Hono API on Cloudflare Workers (`worker/`), D1 (SQLite) via `migrations/`.
 - Pure, tested business logic in `shared/` (eligibility, finance, progress, checklist, writing). No LLM in any decision.
-- Auth: own PBKDF2 + hashed session tokens in D1 (`worker/auth.ts`). Admin = email listed in `ADMIN_EMAILS` secret.
+- Auth: own PBKDF2 + hashed session tokens in D1 (`worker/auth.ts`). Admin = `ADMIN_EMAILS` in local `.dev.vars` only; in production promote with a one-off D1 UPDATE (no email verification yet).
+- Live: https://raasta.raasta.workers.dev · repo: github.com/thekingsaabje/raasta (private).
 
 ## Commands (Windows PowerShell: use `npm.cmd` / `npx.cmd`)
 - `npm.cmd run dev` — local app at http://localhost:5173 (local D1 in `.wrangler/`)

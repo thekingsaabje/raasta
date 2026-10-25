@@ -68,8 +68,9 @@ test("student journey: sign up, profile, matches, track, tick task, writing", as
 test("dashboard is private when signed out", async ({ page }) => {
   await page.goto("/app");
   await expect(page.getByText("Please sign in")).toBeVisible();
-  const r = await page.request.get("/api/me/dashboard");
-  expect(r.status()).toBe(401);
+  // Fetch from inside the page so it uses the browser's network path (proxies included).
+  const status = await page.evaluate(() => fetch("/api/me/dashboard").then((r) => r.status));
+  expect(status).toBe(401);
 });
 
 test("cost planner computes a gap", async ({ page }) => {
