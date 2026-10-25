@@ -217,8 +217,8 @@ function StepBody({ step, answers: a, set, refs, scholarships }: { step: StepId;
       return (
         <Q title="Do you know the city or university?" help="Optional. It helps you match the right official fee pages later.">
           <div className="grid grid-2">
-            <label className="field"><span>City</span><input className="input" value={a.city ?? ""} onChange={(e) => set((x) => ({ ...x, city: e.target.value }))} placeholder="e.g. Munich" /></label>
-            <label className="field"><span>University</span><input className="input" value={a.university ?? ""} onChange={(e) => set((x) => ({ ...x, university: e.target.value }))} placeholder="e.g. TU Munich" /></label>
+            <label className="field"><span>City</span><input className="input" value={a.city ?? ""} onChange={(e) => set((x) => ({ ...x, city: e.target.value }))} placeholder={`e.g. ${({ CN: "Hangzhou", DE: "Munich", IT: "Milan" } as const)[a.country ?? "DE"]}`} /></label>
+            <label className="field"><span>University</span><input className="input" value={a.university ?? ""} onChange={(e) => set((x) => ({ ...x, university: e.target.value }))} placeholder={`e.g. ${({ CN: "Zhejiang University", DE: "TU Munich", IT: "Politecnico di Milano" } as const)[a.country ?? "DE"]}`} /></label>
           </div>
         </Q>
       );
@@ -282,7 +282,7 @@ function StepBody({ step, answers: a, set, refs, scholarships }: { step: StepId;
               return (
                 <button key={s.id} type="button" className="choice" role="checkbox" aria-checked={on} onClick={() => toggle(s)} style={{ justifyContent: "space-between", textAlign: "left" }}>
                   <span className="row" style={{ "--gap": "10px", flexWrap: "nowrap" } as any}><span className="choice-dot" aria-hidden>{on && <Check size={12} strokeWidth={3} />}</span><span><strong style={{ fontSize: 14.5 }}>{s.name}</strong><br /><span className="tiny">{FUNDING_LABEL[(s.funding_class ?? "unknown") as keyof typeof FUNDING_LABEL]}</span></span></span>
-                  <StatusBadge status={s.status} method={s.verification_method} />
+                  <span style={{ flexShrink: 0 }}><StatusBadge status={s.status} method={s.verification_method} /></span>
                 </button>
               );
             })}
@@ -324,7 +324,16 @@ function StepBody({ step, answers: a, set, refs, scholarships }: { step: StepId;
       const options = refsForLevel(refs, "tuition", a.level);
       const l = line("tuition") ?? { id: "tuition", category: "tuition", label: "Tuition", amount: null, currency: home, freq: "year", stage: "during_study", source: unknownSource } as CostLine;
       return (
-        <Q title="What is the tuition fee?" help="Use the figure on your programme's official page. Many public German universities charge no tuition, only a semester fee.">
+        <Q
+          title="What is the tuition fee?"
+          help={
+            {
+              DE: "Use your programme's official page. Many public German universities charge no tuition, only a semester fee; some states charge non-EU students.",
+              IT: "Use your university's fee page. Italian fees often depend on family income and on whether you are a non-EU applicant.",
+              CN: "Use the university's international student fee page. Fees are usually per academic year in CNY.",
+            }[a.country ?? "DE"]
+          }
+        >
           <div className="chips">
             <button className="chip" onClick={() => put({ ...l, amount: 0, source: userSource, label: "Tuition (none charged)" })}>No tuition charged</button>
             <button className="chip" onClick={() => put({ ...l, amount: null, source: unknownSource, label: "Tuition" })}>I don't know yet</button>

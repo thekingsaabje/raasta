@@ -72,6 +72,18 @@ test("conversation → three-scenario results with hand-checked totals, edit and
   await page.getByRole("button", { name: "Skip to results" }).click();
   await page.getByRole("group", { name: "Display currency" }).getByRole("button", { name: "EUR" }).click();
   await expect(baseline).toContainText("EUR 21,225");
+
+  // Export is voluntary and contains the scenarios and sources.
+  const [download] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "Export summary" }).click()]);
+  const text = await (await download.createReadStream()).toArray().then((b) => Buffer.concat(b).toString("utf8"));
+  expect(text).toContain("## Without a scholarship");
+  expect(text).toContain("Cost lines");
+
+  // Start over asks first, then clears the draft.
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("button", { name: "Start over" }).click();
+  await expect(page.getByRole("button", { name: "Start planning" })).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("raasta.costplan.draft.v1") ?? "{}").costs?.length ?? 0)).toBe(0);
 });
 
 test("saved plan appears on the dashboard and keeps versions", async ({ page }) => {
