@@ -31,7 +31,8 @@
 
 ## Cost Planner follow-ups
 - [x] Gap round 1 (free tools): DE insurance + TUM fee; IT visa fee PKR; CN CSC stipend, visa-centre fee, Tsinghua/Fudan/Wuhan fees, Wuhan bank minimum.
-- [ ] Remaining gaps need PDF reading (RWTH fee notice, Lombardy/Veneto DSU calls, Fudan tuition list): download-and-parse is free but needs your OK to download files; or a reviewer reads them by hand.
+- [x] PDF round (approved): Padova + Polimi DSU amounts and residence costs, Fudan 2026 tuition + RMB 100,000 guarantor deposit, RWTH ticket part.
+- [ ] RWTH full semester contribution (fee-rules PDF returned 403); UniMi 2026/27 DSU call not located.
 - [ ] Remaining: BLS study-visa service fee (site blocks bots), Islamabad Oct–Dec fee (not yet posted), Tsinghua UG tuition, national China bank minimum.
 - [ ] Admin screen to review/edit `cost_references` (today: research/finance-sources.json → npm run refs:build).
 - [ ] Optional: match tuition references to the chosen university automatically.

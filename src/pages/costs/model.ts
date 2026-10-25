@@ -117,7 +117,9 @@ export function refsForLevel(refs: Reference[], category: string, level?: string
 export function bestRef(refs: Reference[], category: string, kind: "cost" | "proof_of_funds" = "cost"): Reference | undefined {
   const rank = { VERIFIED: 0, OFFICIAL_ESTIMATE: 1, NEEDS_REVIEW: 2 } as const;
   // Best evidence first; among equals, the higher figure (a plan should not understate costs).
-  const top = (r: Reference) => r.amount_max ?? r.amount ?? 0;
+  // Compare per year so a monthly figure isn't ranked below a yearly one just because its number is smaller.
+  const perYear = { once: 1, month: 12, semester: 2, year: 1 } as const;
+  const top = (r: Reference) => (r.amount_max ?? r.amount ?? 0) * perYear[r.unit];
   return refs.filter((r) => r.kind === kind && r.category === category && r.amount !== null).sort((a, b) => rank[a.status] - rank[b.status] || top(b) - top(a))[0];
 }
 

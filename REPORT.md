@@ -78,6 +78,23 @@ Live: https://raasta.raasta.workers.dev/costs · Repo: https://github.com/thekin
   - **Italy:** BLS service fee for study visas (site blocks access); Islamabad Oct–Dec fee (not posted yet); Lombardy/Veneto DSU amounts (PDF-only calls); a Study in Italy living-cost figure.
   - **China:** Tsinghua undergraduate tuition (table can't be matched to programmes); Fudan general tuition (PDF); dorms priced per night; a national minimum bank balance (no official source found).
 
+## PDF round (approved downloads, free tools: curl + pdftotext)
+- Downloaded 6 official PDFs: Padova 2026-27 regional scholarship call (EN), Polimi DSU 2026/27 call and supplement, Fudan 2026 postgraduate and undergraduate admission guides, and the RWTH student-parliament resolution. They went into a separate temporary folder that was deleted afterwards.
+- Live total: **109 figures — 74 verified, 21 official estimates, 14 needs review.**
+- Added:
+  - **Veneto (Padova/ESU)**, full-time non-resident, 2026/27: €8,246 / €7,171.11 / €3,585.50 a year by income band. Students in ESU residences have €1,600 deducted for accommodation and €760 for meals. I read the table by column order and cross-checked it: the top band is the 15% uplift on 7,171.11, and the minimum is half of 7,171.11.
+  - **Lombardy (Polimi)**, fuori sede in private housing, 2026/27: €8,248 / €7,172 / €5,857 a year including a free daily meal. A full-rate Polimi residence costs €5,240 a year; grant holders in residence have €2,847 deducted.
+  - **Fudan 2026:**
+    - Chinese-taught Master's: RMB 26,000 / 30,000 / 48,000 (liberal arts / science / medicine).
+    - PhD science: RMB 37,000.
+    - Undergraduate: RMB 23,000–42,000.
+    - These are official estimates because Fudan says the fees are "for reference".
+    - The guarantor must show a bank deposit of at least RMB 100,000 (an admission requirement, not a visa rule).
+  - **RWTH:** only the Deutschlandsemesterticket part (€226.80 a semester from WS 2026/27). The full fee-rules PDF returned 403, and I didn't try to get around that, so this is "needs review".
+- Scholarship amounts are stored as income, never as costs.
+- The planner now compares figures per year when picking the higher of two equal-quality figures.
+- Still missing: RWTH's full semester contribution, UniMi's 2026/27 DSU call (Polimi covers Lombardy), the BLS service fee, the Islamabad Oct–Dec fee, Tsinghua undergraduate tuition, and a national minimum bank balance for China.
+
 ## Eligibility safety fixes (carried over from last session)
 - Rules can now be tied to a degree level (`forLevels`), e.g. HEC degree requirements, ANSO/MAECI age limits and Böll degree rules.
 - Malformed rule data can't break a page. Every rule is validated (zod schema).
