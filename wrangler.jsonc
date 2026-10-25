@@ -13,13 +13,13 @@
     {
       "binding": "DB",
       "database_name": "raasta-db",
-      // Filled in after `wrangler d1 create raasta-db`
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      // Created 2026-10-25 in region WNAM. Consider D1 read replication / an APAC copy for Pakistan latency.
+      "database_id": "a10825fc-cc0f-4972-9282-b2b741f88ab8",
       "migrations_dir": "migrations"
     }
   ],
   "vars": {
-    "APP_ENV": "development",
+    "APP_ENV": "production",
     "PAYMENTS_ENABLED": "false",
     "AI_ENABLED": "false"
   },
