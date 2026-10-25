@@ -57,9 +57,10 @@ describe("eligibility engine", () => {
     expect(checkRule({ kind: "min_grade", scale: "german", min: 2.5 }, { grade: { scale: "german", value: 3.0 } }).status).toBe("NOT_MET");
   });
 
-  it("existing-scholarship exclusion", () => {
+  it("existing-scholarship exclusion is a check (timing matters), not an automatic rejection", () => {
     const a = assess(sch(), rules, { ...full, hasExistingScholarship: true });
-    expect(a.overall).toBe("NOT_MET");
+    expect(a.overall).toBe("NEEDS_REVIEW");
+    expect(a.results.find((r) => r.requirementId === "dup")!.reason).toMatch(/ends before/);
   });
 
   it("a failure against an unverified rule is NEEDS_REVIEW, not a rejection", () => {
@@ -88,9 +89,22 @@ describe("eligibility engine", () => {
     expect(assess(sch({ status: "VERIFIED_CLOSED" }), rules, full).deadline.state).toBe("passed");
   });
 
-  it("country/applicant restrictions: continuing students excluded from new-only awards", () => {
-    const r = checkRule({ kind: "applicant_type", allowed: ["new"] }, { journey: "studying_in_china" });
-    expect(r.status).toBe("NOT_MET");
+  it("applicant type: students abroad may be new to another university, so it's a check, not a rejection", () => {
+    expect(checkRule({ kind: "applicant_type", allowed: ["new"] }, { journey: "studying_in_china" }).status).toBe("NEEDS_REVIEW");
+    expect(checkRule({ kind: "applicant_type", allowed: ["continuing"] }, { journey: "applying_from_pakistan" }).status).toBe("NOT_MET");
+    expect(checkRule({ kind: "applicant_type", allowed: ["new"] }, { journey: "applying_from_pakistan" }).status).toBe("MET");
+  });
+
+  it("level-specific rules only apply to that level; malformed rules never throw", () => {
+    const deg = { ...req("deg-m", { kind: "degree_completed", level: "master", forLevels: ["phd"] }) };
+    const a = assess(sch(), [deg], { targetLevel: "master", highestCompleted: "bachelor" });
+    expect(a.results[0].applicable).toBe(false);
+    expect(a.overall).toBe("UNKNOWN"); // no applicable rules left
+    const p = assess(sch(), [deg], { targetLevel: "phd", highestCompleted: "bachelor" });
+    expect(p.overall).toBe("NOT_MET");
+    const broken = { ...req("bad", { kind: "nationality" } as any) };
+    expect(() => assess(sch(), [broken], { nationality: "PK" })).not.toThrow();
+    expect(assess(sch(), [broken], { nationality: "PK" }).results[0].status).toBe("NEEDS_REVIEW");
   });
 
   it("study gap is only judged against a published limit", () => {

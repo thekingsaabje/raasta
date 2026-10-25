@@ -12,6 +12,8 @@ export interface RuleResult {
   sourceUrl: string | null;
   excerpt: string | null;
   scope: RuleScope;
+  /** False when the rule is for another degree level than the student's goal. */
+  applicable: boolean;
   nextAction: string;
 }
 
@@ -132,16 +134,27 @@ export function checkRule(rule: Rule, p: Profile): Outcome {
     case "existing_scholarship":
       if (p.hasExistingScholarship === undefined) return unknown("current scholarship status");
       if (!rule.forbidden) return { status: "MET", reason: "Holding another award is not restricted by this rule." };
+      // "Cannot be combined" means held at the same time; an award that ends before this one starts may not conflict.
       return p.hasExistingScholarship
-        ? { status: "NOT_MET", reason: "This award cannot be combined with an existing scholarship, per the stored rule." }
+        ? { status: "NEEDS_REVIEW", reason: "This award can't be held together with another scholarship. If your current award ends before this one starts, check with the provider whether you qualify." }
         : { status: "MET", reason: "You do not hold a conflicting scholarship." };
 
     case "applicant_type": {
       if (!p.journey) return unknown("current study situation");
-      const type = p.journey === "applying_from_pakistan" ? "new" : "continuing";
-      return rule.allowed.includes(type)
-        ? { status: "MET", reason: `Open to ${type} students.` }
-        : { status: "NOT_MET", reason: `Only for ${rule.allowed.join("/")} students.` };
+      // Someone not yet enrolled anywhere abroad is always a new applicant. Someone already studying abroad may be
+      // continuing at that university OR a new applicant to a different programme, so we can't decide for them.
+      if (p.journey === "applying_from_pakistan")
+        return rule.allowed.includes("new")
+          ? { status: "MET", reason: "Open to new applicants." }
+          : { status: "NOT_MET", reason: "Only for students already enrolled at the institution." };
+      return rule.allowed.includes("new") && rule.allowed.includes("continuing")
+        ? { status: "MET", reason: "Open to new and continuing students." }
+        : {
+            status: "NEEDS_REVIEW",
+            reason: rule.allowed.includes("new")
+              ? "Only for new applicants. If this is a new programme at a different university, you count as new."
+              : "Only for students already enrolled there. Check whether you are enrolled at this institution.",
+          };
     }
 
     case "min_experience_years":
@@ -168,7 +181,23 @@ export function checkRule(rule: Rule, p: Profile): Outcome {
 export function assess(s: Scholarship, reqs: Requirement[], p: Profile, today = new Date().toISOString().slice(0, 10)): Assessment {
   const results: RuleResult[] = reqs.map((r) => {
     const ruleVerified = r.review_status === "VERIFIED";
-    let { status, reason } = checkRule(r.rule, p);
+    // Level-specific rules ("Master's applicants need …") only apply to students aiming for that level.
+    let applicable = true;
+    let status: EligibilityStatus;
+    let reason: string;
+    const levels = r.rule?.forLevels;
+    if (levels?.length && !p.targetLevel) ({ status, reason } = { status: "UNKNOWN", reason: `Applies to ${levels.join("/")} applicants. Add your intended degree to check.` });
+    else if (levels?.length && !levels.includes(p.targetLevel!)) {
+      applicable = false;
+      ({ status, reason } = { status: "MET", reason: `Only applies to ${levels.join("/")} applicants.` });
+    } else {
+      try {
+        ({ status, reason } = checkRule(r.rule, p));
+      } catch {
+        // Malformed rule data must never break a page; it becomes a review item.
+        ({ status, reason } = { status: "NEEDS_REVIEW", reason: "This rule's stored data is incomplete; check the official page." });
+      }
+    }
     if (r.review_status === "CONFLICTING") {
       status = "NEEDS_REVIEW";
       reason = "Official sources conflict on this rule. " + reason;
@@ -183,13 +212,14 @@ export function assess(s: Scholarship, reqs: Requirement[], p: Profile, today = 
       sourceUrl: r.source_url,
       excerpt: r.excerpt,
       scope: r.scope ?? "scholarship_eligibility",
-      nextAction: nextActionFor(r.rule, status, ruleVerified),
+      applicable,
+      nextAction: applicable ? nextActionFor(r.rule ?? { kind: "manual" }, status, ruleVerified) : "Nothing to do for your degree level.",
     };
   });
 
-  // Only rules about applying for the award decide the eligibility verdict; admission, selection,
+  // Only applicable rules about applying for the award decide the eligibility verdict; admission, selection,
   // finance and visa rules are shown separately and never turn into a "chance".
-  const mandatory = results.filter((r) => r.mandatory && r.scope === "scholarship_eligibility");
+  const mandatory = results.filter((r) => r.mandatory && r.applicable && r.scope === "scholarship_eligibility");
   let overall: EligibilityStatus;
   if (mandatory.some((r) => r.status === "NOT_MET" && r.ruleVerified)) overall = "NOT_MET";
   else if (mandatory.some((r) => r.status === "NOT_MET")) overall = "NEEDS_REVIEW";

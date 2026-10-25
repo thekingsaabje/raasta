@@ -1,0 +1,10 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`research seed > real data through the eligibility engine: no crashes, every rule valid, every NOT_MET explained 1`] = `
+[
+  "chinaContinuing × cn-tsinghua-ug-freshmen: Not offered for master study.",
+  "chinaContinuing × it-dsu-toscana-phd: Not offered for master study.",
+  "pkMaster × cn-tsinghua-ug-freshmen: Not offered for master study.",
+  "pkMaster × it-dsu-toscana-phd: Not offered for master study.",
+]
+`;

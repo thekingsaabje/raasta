@@ -106,7 +106,9 @@ export type RuleScope = (typeof RULE_SCOPES)[number];
 export const FUNDING_CLASSES = ["full", "partial", "tuition_only", "stipend_only", "unknown"] as const;
 export type FundingClass = (typeof FUNDING_CLASSES)[number];
 
-export type Rule =
+/** Every rule may be limited to applicants for certain degree levels (e.g. "Master's applicants need a Bachelor's"). */
+export type Rule = RuleBody & { forLevels?: Level[] };
+export type RuleBody =
   | { kind: "nationality"; allowed: string[] }
   | { kind: "target_level"; levels: Level[] }
   | { kind: "degree_completed"; level: "intermediate" | Level }

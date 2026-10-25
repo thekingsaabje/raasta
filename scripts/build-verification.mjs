@@ -1,6 +1,7 @@
-// Turns research/verification.json into seed/verification-update.sql: an idempotent, history-preserving update.
+﻿// Turns research/verification.json into seed/verification-update.sql: an idempotent, history-preserving update.
 // Never deletes human-verified rules, never runs the original seed. Run: node scripts/build-verification.mjs
 import { readFileSync, writeFileSync } from "node:fs";
+import { parseRule, levelsFromText } from "../shared/rules.ts";
 
 const V = JSON.parse(readFileSync("research/verification.json", "utf8"));
 const MARK = `[evidence-check ${V.checked_on}]`;
@@ -22,22 +23,30 @@ function coverageOf(c) {
   return Object.keys(ok).length ? JSON.stringify(ok) : null;
 }
 
-function rulesSql(sid, rec, verifiedCycle) {
+function rulesSql(sid, rec, currentCycle) {
   (rec.rules ?? []).forEach((r, i) => {
     const kind = r.machine_rule?.kind;
-    const rule = kind && KINDS.has(kind) ? r.machine_rule : { kind: "manual" };
+    const parsed = kind && KINDS.has(kind) ? parseRule(r.machine_rule) : null;
+    if (kind && kind !== "manual" && !parsed) stats.malformed = (stats.malformed ?? 0) + 1;
+    const rule = parsed ?? { kind: "manual" };
+    // "Master applicants need â€¦" â†’ only applies to students aiming for that level.
+    const lv = rule.kind === "target_level" ? undefined : levelsFromText(r.applies_to) ?? levelsFromText(r.text_en);
+    if (lv && !rule.forLevels) rule.forLevels = lv;
     const verbatim = typeof r.excerpt_verbatim === "string" && r.excerpt_verbatim.trim().length > 0;
-    // A rule can reject a student only when it comes from a confirmed current cycle with a verbatim quote.
-    const review = verifiedCycle && verbatim ? "VERIFIED" : "NEEDS_REVIEW";
+    // A rule can reject a student only when it comes from a confirmed CURRENT (open/upcoming) cycle with a
+    // verbatim quote and valid structure. Rules from closed calls stay NEEDS_REVIEW for the next cycle.
+    const review = currentCycle && verbatim && (parsed || rule.kind === "manual") ? "VERIFIED" : "NEEDS_REVIEW";
     stats.rules++;
     if (review === "VERIFIED") stats.verifiedRules++;
     const ev = (rec.evidence ?? []).find((e) => e.url === r.source_url) ?? (rec.evidence ?? [])[0] ?? {};
     out.push(
-      `INSERT OR IGNORE INTO requirements (id, scholarship_id, type, rule, text, excerpt, original_excerpt, source_url, applies_to, mandatory, review_status, retrieved_at, verified_at, scope, fetch_method) VALUES (${[
+      `INSERT INTO requirements (id, scholarship_id, type, rule, text, excerpt, original_excerpt, source_url, applies_to, mandatory, review_status, retrieved_at, verified_at, scope, fetch_method) VALUES (${[
         `${sid}-v${i + 1}`, sid, r.type ?? kind ?? "other", JSON.stringify(rule), r.text_en ?? r.excerpt_verbatim ?? "See official page",
         verbatim ? r.excerpt_verbatim.slice(0, 600) : null, r.original_excerpt ?? null, r.source_url ?? ev.url ?? null, r.applies_to ?? null, 1,
         review, ev.fetched ?? V.checked_on, review === "VERIFIED" ? V.checked_on : null, SCOPES.has(r.scope) ? r.scope : "scholarship_eligibility", ev.method ?? null,
-      ].map(q).join(", ")});`,
+      ].map(q).join(", ")})
+      ON CONFLICT(id) DO UPDATE SET rule = excluded.rule, review_status = excluded.review_status, verified_at = excluded.verified_at, scope = excluded.scope
+      WHERE requirements.id NOT IN (SELECT entity_id FROM record_history WHERE entity = 'requirement' AND changed_by IS NOT NULL AND changed_by != 'research-agent');`,
     );
   });
 }
@@ -72,7 +81,7 @@ for (const rec of V.scholarships ?? []) {
       verification_method = ${isVerified ? "'agent_evidence'" : "NULL"}, last_verified_at = ${isVerified ? q(V.checked_on) : "last_verified_at"},
       evidence_note = ${q(`${MARK} ${rec.notes ?? ""}`.slice(0, 1900))}, version = version + 1, updated_at = ${q(now)} WHERE ${guard};`,
   );
-  rulesSql(sid, rec, isVerified);
+  rulesSql(sid, rec, finalStatus === "VERIFIED_OPEN" || finalStatus === "VERIFIED_UPCOMING");
   if (!isVerified) task("verify_record", sid, `${finalStatus}: ${rec.notes ?? "needs human verification"}`);
   if (rec.monitor_url) {
     stats.sources++;
@@ -95,7 +104,7 @@ for (const rec of V.new_scholarships ?? []) {
       rec.monitor_url ?? null, 0, V.checked_on, `${MARK} ${rec.notes ?? ""}`.slice(0, 1900), now,
     ].map(q).join(", ")});`,
   );
-  rulesSql(rec.id, rec, isVerified);
+  rulesSql(rec.id, rec, finalStatus === "VERIFIED_OPEN" || finalStatus === "VERIFIED_UPCOMING");
   if (!isVerified) task("verify_record", rec.id, `${finalStatus}: ${rec.notes ?? "new record, needs human verification"}`);
 }
 

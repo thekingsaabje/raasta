@@ -171,7 +171,7 @@ test("J7 · continuing student tracking a scholarship renewal", async ({ page })
   await expect(page.getByText("not confirmed").first()).toBeVisible(); // own dates are never shown as official
   // Awards that exclude existing scholarship holders are flagged.
   const a = await call(page, "GET", "/me/assessments/test-cn-master");
-  expect(a.json.assessment.results.find((r: any) => r.text.includes("existing")).status).toBe("NOT_MET");
+  expect(a.json.assessment.results.find((r: any) => r.text.includes("existing")).status).toBe("NEEDS_REVIEW");
 });
 
 test("Security · isolation, admin denial, honest unavailable features", async ({ page, browser }) => {
