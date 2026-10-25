@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "raasta",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-10-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "raasta-db",
+      // Filled in after `wrangler d1 create raasta-db`
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "APP_ENV": "development",
+    "PAYMENTS_ENABLED": "false",
+    "AI_ENABLED": "false"
+  },
+  // Daily source-freshness job (Milestone 5). Free tier allows cron triggers.
+  "triggers": { "crons": ["17 3 * * *"] },
+  "observability": { "enabled": true }
+  // Custom domain later: add "routes": [{ "pattern": "raasta.example", "custom_domain": true }]
+}
