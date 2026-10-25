@@ -6,6 +6,8 @@ export interface Env {
   AI_ENABLED: string;
   /** Comma-separated emails that become admin on registration. Set as a secret. */
   ADMIN_EMAILS?: string;
+  /** Password-hash work factor (20k–100k). Lower only if the Workers CPU limit is hit. */
+  PBKDF2_ITERATIONS?: string;
 }
 
 export interface SessionUser {

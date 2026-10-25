@@ -2,7 +2,7 @@
 
 ## Needs the founder
 - [ ] Finish `gh auth login` and `npx.cmd wrangler login` (then Claude creates the private repo, D1 database and deploys).
-- [ ] Choose admin email(s) for the `ADMIN_EMAILS` secret.
+- [ ] Register on the live site, then Claude promotes that account to admin with a one-off D1 command (ADMIN_EMAILS stays unset in production until email verification exists).
 - [ ] Decide on an email provider (Resend free tier) for verification/password reset/reminders — needs an account.
 - [ ] Later: domain purchase; payment provider that supports a Pakistan business + PKR (verify before integrating).
 

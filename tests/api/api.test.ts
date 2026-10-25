@@ -28,6 +28,14 @@ describe("auth and access control", () => {
     expect((await b.post("/auth/login", { email: "s1@test.local", password: "correct horse battery" })).status).toBe(200);
   });
 
+  it("lower work factor still logs in; stored hash carries its iteration count", async () => {
+    const env = makeEnv({ PBKDF2_ITERATIONS: "30000" });
+    await client(env).register("s1@test.local");
+    const row = await env.DB.prepare("SELECT password_hash FROM users").first<any>();
+    expect(row.password_hash.startsWith("30000$")).toBe(true);
+    expect((await client(env).post("/auth/login", { email: "s1@test.local", password: "correct horse battery" })).status).toBe(200);
+  });
+
   it("login is rate limited", async () => {
     const env = makeEnv();
     const b = client(env);

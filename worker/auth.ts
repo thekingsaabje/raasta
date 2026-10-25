@@ -4,25 +4,28 @@ import { getCookie, setCookie, deleteCookie } from "hono/cookie";
 import type { AppEnv, SessionUser } from "./env";
 import { now, sha256Hex } from "./util";
 
-const ITERATIONS = 100_000; // workerd's PBKDF2 maximum
+// workerd caps PBKDF2 at 100k. The count is stored with each hash ("<iterations>$<hash>") so it can be
+// tuned to the Workers CPU limit via PBKDF2_ITERATIONS without breaking existing accounts.
+export const DEFAULT_ITERATIONS = 100_000;
 const SESSION_DAYS = 14;
 export const COOKIE = "raasta_session";
 
 const b64 = (u: Uint8Array) => btoa(String.fromCharCode(...u));
 const unb64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 
-export async function hashPassword(password: string, saltB64?: string) {
+export async function hashPassword(password: string, saltB64?: string, iterations = DEFAULT_ITERATIONS) {
   const salt = saltB64 ? unb64(saltB64) : crypto.getRandomValues(new Uint8Array(16));
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: ITERATIONS }, key, 256);
-  return { hash: b64(new Uint8Array(bits)), salt: b64(salt) };
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations }, key, 256);
+  return { hash: `${iterations}$${b64(new Uint8Array(bits))}`, salt: b64(salt) };
 }
 
-export async function verifyPassword(password: string, hash: string, salt: string): Promise<boolean> {
-  const { hash: h } = await hashPassword(password, salt);
-  if (h.length !== hash.length) return false;
+export async function verifyPassword(password: string, stored: string, salt: string): Promise<boolean> {
+  const [iter, digest] = stored.includes("$") ? stored.split("$") : [String(DEFAULT_ITERATIONS), stored];
+  const h = (await hashPassword(password, salt, Number(iter))).hash.split("$")[1];
+  if (h.length !== digest.length) return false;
   let diff = 0;
-  for (let i = 0; i < h.length; i++) diff |= h.charCodeAt(i) ^ hash.charCodeAt(i);
+  for (let i = 0; i < h.length; i++) diff |= h.charCodeAt(i) ^ digest.charCodeAt(i);
   return diff === 0;
 }
 

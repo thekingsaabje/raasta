@@ -4,7 +4,8 @@ Implemented
 - Passwords: PBKDF2-SHA256, 100k iterations (workerd max), 16-byte salt, constant-time compare. Min length 10.
 - Sessions: 32-byte random token in HttpOnly, SameSite=Lax, Secure (on https) cookie; only its SHA-256 is stored; 14-day expiry; logout deletes it.
 - CSRF: non-GET requests must be JSON and, when an Origin header is present, same-origin.
-- Authorisation: `/api/me/*` requires a session and every query is scoped by `user_id`; `/api/admin/*` requires role=admin (server-side). Admin role only via `ADMIN_EMAILS` secret at registration.
+- Authorisation: `/api/me/*` requires a session and every query is scoped by `user_id`; `/api/admin/*` requires role=admin (server-side). Admin role via `ADMIN_EMAILS` (local dev only) or a one-off D1 update in production — `ADMIN_EMAILS` must stay unset in production until email ownership is verified, otherwise whoever registers that address first becomes admin.
+- Password hashes store their own iteration count (`<iter>$<hash>`), so `PBKDF2_ITERATIONS` can be tuned to the Workers CPU limit without breaking accounts.
 - Students cannot set `verified_status`; assisted/managed modes are refused; stage ≥ submitted needs evidence text.
 - Input validation with zod on every write (strict profile schema); safe error responses; no request bodies logged.
 - Rate limits (D1): register 10/h/IP, login 8/15min per IP+email, error reports 10/h/IP.

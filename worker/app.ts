@@ -139,7 +139,8 @@ app.post("/auth/register", async (c) => {
   );
   const exists = await c.env.DB.prepare("SELECT 1 FROM users WHERE email = ?").bind(b.email).first();
   if (exists) return c.json({ error: "An account with this email already exists." }, 409);
-  const { hash, salt } = await hashPassword(b.password);
+  const iterations = Math.min(100_000, Math.max(20_000, Number(c.env.PBKDF2_ITERATIONS) || 100_000));
+  const { hash, salt } = await hashPassword(b.password, undefined, iterations);
   const admins = (c.env.ADMIN_EMAILS ?? "").toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
   const role = admins.includes(b.email) ? "admin" : "student";
   const id = newId();

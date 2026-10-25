@@ -17,14 +17,23 @@
 - Cron (`17 3 * * *`): checks ≤20 sources per run, flags changed pages for review, marks repeat failures inaccessible.
 
 ## Tests (last run 2026-10-25)
-- `npm.cmd test`: 54/54 passed (eligibility, finance, progress, writing, checklist, API auth/isolation/admin/dashboard/writing/privacy/monitor, seed integrity).
+- `npm.cmd test`: 55/55 passed (eligibility, finance, progress, writing, checklist, API auth/isolation/admin/dashboard/writing/privacy/monitor, seed integrity).
 - `npm.cmd run test:e2e` (local, desktop + mobile Chrome): 10/10 passed.
 
 ## Deploy steps (once logged in)
 1. `npx.cmd wrangler d1 create raasta-db` → put the id in `wrangler.jsonc`.
-2. `npm.cmd run db:migrate:remote` and `npm.cmd run db:seed:remote`.
-3. `npx.cmd wrangler secret put ADMIN_EMAILS`.
-4. `npm.cmd run deploy`, then `$env:BASE_URL="https://raasta.<subdomain>.workers.dev"; npm.cmd run test:e2e`.
+2. `npm.cmd run db:migrate:remote`, then **first deploy only** `npm.cmd run db:seed:remote`
+   (the seed deletes all requirements and replaces scholarships — never re-run it on a live database with real reviews or students).
+3. Do **not** set `ADMIN_EMAILS` in production (no email verification yet, so anyone could register that address first).
+   After the founder registers on the live site, promote once:
+   `npx.cmd wrangler d1 execute raasta-db --remote --command "UPDATE users SET role='admin' WHERE email='<founder email>'"`
+4. `npm.cmd run deploy` (first time may ask to register a free workers.dev subdomain — run it in a terminal tab),
+   then `$env:BASE_URL="https://raasta.<subdomain>.workers.dev"; npm.cmd run test:e2e`.
+5. CPU check: password hashing took ~13 ms locally; Workers Free allows ~10 ms CPU per request. If live sign-up/login
+   fails (error 1102), set var `PBKDF2_ITERATIONS` (e.g. 50000) — hashes store their own count, so old accounts keep working —
+   or ask the founder about Workers Paid ($5/month).
+6. Cron: configured (`17 3 * * *`, 20 pages/run) but **not yet verified live**. After the first run check
+   `npx.cmd wrangler d1 execute raasta-db --remote --command "SELECT COUNT(*) FROM source_checks"`; if runs are cut short, lower the per-run limit.
 
 ## Costs
 Everything runs on free tiers (Workers Free: 100k requests/day; D1 free limits; GitHub private repo free). No paid services used.

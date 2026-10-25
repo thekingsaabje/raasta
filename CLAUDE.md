@@ -12,7 +12,7 @@ Pakistan-first study-abroad platform (China, Germany, Italy). Read HANDOFF.md fi
 - `npm.cmd test` — unit + API tests (Node built-in SQLite shim in `tests/d1-shim.ts`)
 - `npm.cmd run test:e2e` — Playwright; set `$env:BASE_URL` to test the deployed site
 - `npm.cmd run typecheck`, `npm.cmd run seed:build` (research/sources.json → seed/seed.sql)
-- `npm.cmd run db:migrate:local` / `db:seed:local`; remote variants exist
+- `npm.cmd run db:migrate:local` / `db:seed:local`; remote variants exist. `db:seed:remote` is FIRST DEPLOY ONLY — it wipes requirements and replaces scholarships.
 
 ## Rules that must not be broken
 - Never mark a scholarship VERIFIED_* or a rule VERIFIED without a human check of the current official call.
