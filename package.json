@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc -p tsconfig.app.json && tsc -p tsconfig.worker.json",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "db:migrate:local": "wrangler d1 migrations apply raasta-db --local",
