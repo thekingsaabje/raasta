@@ -24,3 +24,7 @@
 - [ ] Automated accessibility audit (axe/Lighthouse) — not run yet; manual keyboard/contrast review only.
 - [ ] CSP header; admin 2FA; split motion library from the main bundle (index ~135 KB gzip).
 - [ ] CI: run unit tests + Playwright on GitHub Actions (free tier).
+
+## URGENT (2026-10-25, end of session)
+- [ ] Per-level rules (HEC degree, ANSO/MAECI age, Boell degree) are stored as all-mandatory. Live fix applied: closed-cycle verified rules + Boell degree rules demoted to NEEDS_REVIEW (manual SQL; mirror it in scripts/build-verification.mjs). Add a forLevels field to rules, a zod rule schema in the build script, try/catch around checkRule in assess, and a test that runs assess over the verification data. Then merge dev to main.
+- [ ] Delete live e2e accounts after the background test run: DELETE FROM users WHERE email LIKE 'e2e-%@raasta.test'; and the E2E error report + review task.
