@@ -18,7 +18,7 @@ async function signup(page: Page, tag: string) {
 }
 
 /** API calls from inside the page so they use the browser's session and network path. */
-const call = (page: Page, method: string, path: string, body?: unknown) =>
+const call = (page: Page, method: string, path: string, body?: unknown): Promise<{ status: number; json: any }> =>
   page.evaluate(
     async ([m, p, b]) => {
       const r = await fetch("/api" + p, { method: m as string, headers: b ? { "content-type": "application/json" } : {}, body: b ? JSON.stringify(b) : undefined });

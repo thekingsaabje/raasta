@@ -12,6 +12,7 @@ import { generateChecklist } from "../shared/checklist";
 import { capabilities, checkDocument, coachingQuestions, DOC_KINDS, outlineFromFacts, type DocKind } from "../shared/writing";
 import { APPLICATION_STAGES, FUNDING_CLASSES, OPPORTUNITY_STATUSES, STUDENT_STATUSES, VERIFIED_STATUSES, WRITING_MODES, type Scholarship } from "../shared/types";
 import { runSourceChecks } from "./monitor";
+import { plannerRoutes } from "./planner";
 
 export const app = new Hono<AppEnv>().basePath("/api");
 
@@ -439,7 +440,20 @@ me.get("/dashboard", async (c) => {
     if (s && (s.funding_class ?? "unknown") === "unknown") funding.push({ title: `Confirm what ${a.title} pays`, why: "Coverage isn't confirmed yet. Check tuition, stipend and housing on the official page.", to: `/scholarships/${a.scholarship_id}` });
   }
 
+  // Latest saved financial plan. Financial progress is reported separately from application progress.
+  const latestPlan = await db
+    .prepare("SELECT plan_id, version, title, country, application_id, summary, created_at FROM fin_assessments WHERE user_id = ? ORDER BY created_at DESC LIMIT 1")
+    .bind(id)
+    .first<Record<string, any>>();
+  const finance: Record<string, any> | null = latestPlan ? { ...latestPlan, summary: JSON.parse(latestPlan.summary) } : null;
+  if (!finance) funding.unshift({ title: "Run the Cost Planner", why: "Get a without/with-scholarship estimate and see how much cash you need at each stage.", to: "/costs" });
+  else {
+    if (finance.summary.missing.length) funding.unshift({ title: "Fill in unknown costs", why: `${finance.summary.missing.length} cost(s) in "${finance.title}" are unknown and excluded.`, to: `/costs?plan=${finance.plan_id}` });
+    if (finance.summary.evidence.VERIFIED === 0) funding.push({ title: "Confirm costs on official pages", why: "None of your plan's figures are verified official amounts yet.", to: `/costs?plan=${finance.plan_id}` });
+  }
+
   return c.json({
+    finance,
     opportunities,
     funding: funding.slice(0, 4),
     agenda: tasks
@@ -591,6 +605,7 @@ me.get("/export", async (c) => {
     tasks: await q("SELECT * FROM tasks WHERE user_id = ?"),
     facts: await q("SELECT * FROM facts WHERE user_id = ?"),
     writing: await q("SELECT * FROM writing_docs WHERE user_id = ?"),
+    financialPlans: await q("SELECT * FROM fin_assessments WHERE user_id = ?"),
     saved: await q("SELECT * FROM saved_scholarships WHERE user_id = ?"),
   });
 });
@@ -759,5 +774,7 @@ admin.post("/users/reset-link", async (c) => {
 admin.get("/audit", async (c) => c.json({ audit: (await c.env.DB.prepare("SELECT * FROM audit_log ORDER BY id DESC LIMIT 200").all()).results }));
 
 app.route("/admin", admin);
+
+app.route("/", plannerRoutes);
 
 app.all("*", (c) => c.json({ error: "Not found." }, 404));
