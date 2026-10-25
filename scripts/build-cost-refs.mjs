@@ -1,8 +1,18 @@
 // research/finance-sources.json → seed/cost-references.sql (reference data only; safe to re-run).
 // Run: npm run refs:build
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const D = JSON.parse(readFileSync("research/finance-sources.json", "utf8"));
+// Later research rounds add items in a separate file; ids must not collide.
+if (existsSync("research/finance-sources-additions.json")) {
+  const add = JSON.parse(readFileSync("research/finance-sources-additions.json", "utf8"));
+  const seen = new Set(D.items.map((i) => i.id));
+  for (const i of add.items ?? []) {
+    if (seen.has(i.id)) throw new Error(`duplicate reference id ${i.id}`);
+    seen.add(i.id);
+    D.items.push(i);
+  }
+}
 const q = (v) => (v === null || v === undefined ? "NULL" : typeof v === "number" ? String(v) : `'${String(v).replace(/'/g, "''")}'`);
 const STATUS = new Set(["VERIFIED", "OFFICIAL_ESTIMATE", "NEEDS_REVIEW"]);
 const UNIT = new Set(["once", "month", "semester", "year"]);

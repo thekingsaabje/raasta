@@ -58,6 +58,26 @@ Live: https://raasta.raasta.workers.dev/costs · Repo: https://github.com/thekin
   - The CSC stipend figure is from an older cycle (needs review).
 - **Firecrawl credits are running low** (research tool). Topping up is your decision; nothing was bought.
 
+## Gap-filling round (free methods only, 2026-10-25)
+- 23 more figures from official pages, read as raw page text in Chrome. Search was used only to find URLs. No Firecrawl, no paid tools.
+- Live total: **93 figures — 64 verified, 16 official estimates, 13 needs review.**
+- Filled:
+  - **Germany:** TK statutory student health insurance from 1 Jan 2026 (€141.16 a month under 23, €146.29 from 23; €220.03 voluntary minimum afterwards); Studierendenwerk München fee for TUM, €97 a semester.
+  - **Italy:** study visa fee in PKR, 16,250 (Karachi consulate, Oct–Dec 2026).
+  - **China:**
+    - CSC stipend straight from Campus China (CNY 2,500 / 3,000 / 3,500 a month).
+    - Chinese visa centre service fee in Islamabad (PKR 13,200 regular, 19,800 express).
+    - Tsinghua 2027 graduate tuition (CNY 33,000–40,000 a year); Fudan UIPE (CNY 400,000 for the whole programme).
+    - Wuhan University: a USD 5,000 bank-statement minimum for graduate applicants. Its undated fee pages are marked "needs review".
+- I re-checked three quotes containing "..." myself in Chrome:
+  - The Italian visa fee and the Fudan total matched the official pages.
+  - The Chinese visa-centre page now shows a "slide to verify" bot check, which I didn't bypass, so that figure relies on the researcher's earlier reading.
+- When two official figures tie, the planner now pre-fills the higher one.
+- Still missing:
+  - **Germany:** RWTH 2026/27 semester fee (official notices are PDFs or broken links).
+  - **Italy:** BLS service fee for study visas (site blocks access); Islamabad Oct–Dec fee (not posted yet); Lombardy/Veneto DSU amounts (PDF-only calls); a Study in Italy living-cost figure.
+  - **China:** Tsinghua undergraduate tuition (table can't be matched to programmes); Fudan general tuition (PDF); dorms priced per night; a national minimum bank balance (no official source found).
+
 ## Eligibility safety fixes (carried over from last session)
 - Rules can now be tied to a degree level (`forLevels`), e.g. HEC degree requirements, ANSO/MAECI age limits and Böll degree rules.
 - Malformed rule data can't break a page. Every rule is validated (zod schema).

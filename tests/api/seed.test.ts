@@ -57,6 +57,19 @@ describe("research seed", () => {
     expect(noDate.n).toBe(0);
   });
 
+  it("cost references load; every verified figure has a quote, a link and a date", async () => {
+    const env = makeEnv();
+    await env.DB.exec(readFileSync(join(import.meta.dirname, "..", "..", "seed", "cost-references.sql"), "utf8"));
+    const all = (await env.DB.prepare("SELECT * FROM cost_references").all<any>()).results;
+    expect(all.length).toBeGreaterThan(50);
+    for (const r of all.filter((x: any) => x.status === "VERIFIED")) {
+      expect(r.excerpt, r.id).toBeTruthy();
+      expect(r.source_url, r.id).toMatch(/^https?:\/\//);
+      expect(r.checked_at, r.id).toMatch(/^\d{4}-\d{2}-\d{2}/);
+    }
+    for (const r of all) if (r.amount !== null && r.amount_max !== null) expect(r.amount_max, r.id).toBeGreaterThanOrEqual(r.amount);
+  });
+
   it("real data through the eligibility engine: no crashes, every rule valid, every NOT_MET explained", async () => {
     const env = makeEnv();
     const root = join(import.meta.dirname, "..", "..");

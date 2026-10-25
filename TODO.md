@@ -30,7 +30,9 @@
 - [x] Conversational Cost Planner with 3 scenarios, official cost references, saved versions, dashboard card.
 
 ## Cost Planner follow-ups
-- [ ] Fill cost-figure gaps (see REPORT.md): DE insurer tariff + 2026/27 semester fees; IT PKR visa/service fee + Lombardy/Veneto DSU; CN university fees + self-funded bank minimum; fresh CSC stipend page.
+- [x] Gap round 1 (free tools): DE insurance + TUM fee; IT visa fee PKR; CN CSC stipend, visa-centre fee, Tsinghua/Fudan/Wuhan fees, Wuhan bank minimum.
+- [ ] Remaining gaps need PDF reading (RWTH fee notice, Lombardy/Veneto DSU calls, Fudan tuition list): download-and-parse is free but needs your OK to download files; or a reviewer reads them by hand.
+- [ ] Remaining: BLS study-visa service fee (site blocks bots), Islamabad Oct–Dec fee (not yet posted), Tsinghua UG tuition, national China bank minimum.
 - [ ] Admin screen to review/edit `cost_references` (today: research/finance-sources.json → npm run refs:build).
 - [ ] Optional: match tuition references to the chosen university automatically.
 - [ ] Firecrawl credits are low — founder decides whether to top up before the next research round.

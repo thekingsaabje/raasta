@@ -116,7 +116,9 @@ export function refsForLevel(refs: Reference[], category: string, level?: string
 
 export function bestRef(refs: Reference[], category: string, kind: "cost" | "proof_of_funds" = "cost"): Reference | undefined {
   const rank = { VERIFIED: 0, OFFICIAL_ESTIMATE: 1, NEEDS_REVIEW: 2 } as const;
-  return refs.filter((r) => r.kind === kind && r.category === category && r.amount !== null).sort((a, b) => rank[a.status] - rank[b.status])[0];
+  // Best evidence first; among equals, the higher figure (a plan should not understate costs).
+  const top = (r: Reference) => r.amount_max ?? r.amount ?? 0;
+  return refs.filter((r) => r.kind === kind && r.category === category && r.amount !== null).sort((a, b) => rank[a.status] - rank[b.status] || top(b) - top(a))[0];
 }
 
 export function toInput(a: Answers, rates: { pkrPer: Record<string, number>; source: string; date: string | null }): PlanInput {
