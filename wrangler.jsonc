@@ -23,8 +23,8 @@
     "PAYMENTS_ENABLED": "false",
     "AI_ENABLED": "false"
   },
-  // Daily source-freshness job (Milestone 5). Free tier allows cron triggers.
-  "triggers": { "crons": ["17 3 * * *"] },
+  // Source-freshness job. Cron times are UTC: every 4 hours at :17 (08:17, 12:17 … PKT). 6 sources per run.
+  "triggers": { "crons": ["*/2 * * * *"] },
   "observability": { "enabled": true }
   // Custom domain later: add "routes": [{ "pattern": "raasta.example", "custom_domain": true }]
 }

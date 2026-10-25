@@ -3,6 +3,7 @@ import { calculate } from "../../shared/finance";
 import { blockedBy, nextActions, progress, type TaskLike } from "../../shared/progress";
 import { capabilities, checkDocument } from "../../shared/writing";
 import { generateChecklist } from "../../shared/checklist";
+import { classifyFunding } from "../../shared/funding";
 
 describe("finance calculator", () => {
   const base = {
@@ -122,6 +123,17 @@ describe("writing studio", () => {
   it("empty fact bank and placeholders are flagged", () => {
     const issues = checkDocument({ ...base, facts: [], content: "My project [add details]", wordLimit: null });
     expect(issues.map((i) => i.code)).toEqual(expect.arrayContaining(["no_facts", "placeholder"]));
+  });
+});
+
+describe("funding classification", () => {
+  it("only documented tuition + living + housing is 'full'", () => {
+    expect(classifyFunding({ tuition: "full", accommodation: "full", stipend: { amount: 3000, currency: "CNY", period: "month" } })).toBe("full");
+    expect(classifyFunding({ tuition: "full" })).toBe("tuition_only");
+    expect(classifyFunding({ tuition: "full", stipend: { amount: 1, currency: "EUR", period: "month" } })).toBe("partial");
+    expect(classifyFunding({ tuition: "none", stipend: { amount: 1300, currency: "EUR", period: "month" } })).toBe("stipend_only");
+    expect(classifyFunding({})).toBe("unknown");
+    expect(classifyFunding(null)).toBe("unknown");
   });
 });
 

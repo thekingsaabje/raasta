@@ -30,7 +30,7 @@ export function Applications() {
   return (
     <div className="stack" style={{ "--gap": "18px" } as any}>
       <div className="row between">
-        <div><p className="eyebrow">Applications</p><h2 style={{ marginTop: 4 }}>Each application, tracked separately.</h2></div>
+        <div><h1>Applications</h1><p className="muted" style={{ marginTop: 8 }}>Each application keeps its own requirements, documents and deadlines.</p></div>
         <button className="btn btn-primary" onClick={() => setOpen(true)}><Plus size={15} />Custom application</button>
       </div>
       <Notice kind="info">Mode: <strong>guided self-application</strong>. You submit through the official system yourself. Assisted and managed processing aren't offered yet.</Notice>
@@ -146,8 +146,8 @@ export function ApplicationDetail({ id }: { id: string }) {
         <ProgressBar value={p.percent} />
       </div>
 
-      <div className="card">
-        <div className="list">
+      <div className="panel panel-flush">
+        <div>
           {t.data!.tasks.map((x) => {
             const isDone = done(x);
             const blocked = x.blocked_by.length > 0 && !isDone;
@@ -205,7 +205,7 @@ export function ApplicationDetail({ id }: { id: string }) {
             );
           })}
         </div>
-        <div className="row" style={{ marginTop: 12, flexWrap: "nowrap" } as any}>
+        <div className="row" style={{ padding: 16, borderTop: "1px solid var(--line)", background: "var(--sunk)", flexWrap: "nowrap" } as any}>
           <input className="input" placeholder="Add your own task…" value={newTask} onChange={(e) => setNewTask(e.target.value)} onKeyDown={(e) => e.key === "Enter" && newTask.trim() && addTask()} />
           <button className="btn btn-soft" disabled={!newTask.trim()} onClick={addTask}><Plus size={14} />Add</button>
         </div>

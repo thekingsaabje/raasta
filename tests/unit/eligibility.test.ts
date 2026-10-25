@@ -107,6 +107,20 @@ describe("eligibility engine", () => {
     expect(checkRule({ kind: "language", anyOf: [{ test: "HSK", min: 4 }] }, { languageTests: [{ test: "IELTS", score: 8 }] }).status).toBe("UNKNOWN");
   });
 
+  it("admission/selection/visa rules are reported but don't decide award eligibility", () => {
+    const visa = { ...req("visa", { kind: "min_grade", scale: "4", min: 3.9 }), scope: "admission" as const };
+    const a = assess(sch(), [...rules, visa], full);
+    expect(a.overall).toBe("MET");
+    expect(a.results.find((r) => r.requirementId === "visa")!.status).toBe("NOT_MET");
+  });
+
+  it("every result carries a next action", () => {
+    const { languageTests: _l, ...noLang } = full;
+    const a = assess(sch(), rules, noLang);
+    expect(a.results.find((r) => r.requirementId === "lang")!.nextAction).toMatch(/language test/);
+    expect(a.results.every((r) => r.nextAction.length > 5)).toBe(true);
+  });
+
   it("optional rules do not decide the overall result", () => {
     const a = assess(sch(), [...rules, req("exp", { kind: "min_experience_years", min: 5 }, "VERIFIED", 0)], { ...full, experienceYears: 0 });
     expect(a.overall).toBe("MET");

@@ -1,43 +1,68 @@
 import { motion } from "motion/react";
-import { ArrowUpRight, CalendarClock, GraduationCap, Landmark } from "lucide-react";
+import { ArrowRight, Check, Plus } from "lucide-react";
 import { Link } from "../lib/router";
-import { COUNTRY } from "../lib/use";
+import { COUNTRY, fmtDate } from "../lib/use";
 import { EligBadge, StatusBadge, TestBadge, stagger } from "./ui";
+import { FUNDING_LABEL } from "../../shared/funding";
 
-export function ScholarshipCard({ s, elig, onCompare, comparing }: { s: any; elig?: string; onCompare?: () => void; comparing?: boolean }) {
+const TILE: Record<string, string> = { CN: "#b3261e", DE: "#1f2421", IT: "#146b3a" };
+
+export function initials(provider: string) {
+  const words = provider.replace(/\(.*?\)/g, "").split(/[\s/,-]+/).filter((w) => w.length > 2 && /^[A-Z]/.test(w));
+  return (words.slice(0, 2).map((w) => w[0]).join("") || provider.slice(0, 2)).toUpperCase();
+}
+
+export function deadlineText(s: any) {
+  if (s.deadline_date) return { main: fmtDate(s.deadline_date), sub: s.status?.startsWith("VERIFIED_") ? "Checked deadline" : "Not confirmed" };
+  if (s.deadline_text) return { main: "Not confirmed", sub: s.deadline_text };
+  return { main: "Not published", sub: "" };
+}
+
+export function TableHead({ withElig }: { withElig?: boolean }) {
   return (
-    <motion.article variants={stagger.item} layout className="card card-hover stack" style={{ "--gap": "12px" } as any}>
-      <div className="row between">
-        <span className="row" style={{ "--gap": "6px" } as any}>
-          <span className="flag">{COUNTRY[s.country]?.code}</span>
-          <span className="subtle">{COUNTRY[s.country]?.name}</span>
-        </span>
-        <StatusBadge status={s.status} />
+    <div className="thead" role="row">
+      <span role="columnheader">Scholarship</span>
+      <span role="columnheader">Funding</span>
+      <span role="columnheader">Deadline</span>
+      <span role="columnheader">{withElig ? "Your eligibility" : "Verification"}</span>
+      <span role="columnheader" style={{ textAlign: "right" }}>Actions</span>
+    </div>
+  );
+}
+
+/** One catalogue row. Status and funding only show what the record documents. */
+export function ScholarshipRow({ s, elig, onCompare, comparing }: { s: any; elig?: string; onCompare?: () => void; comparing?: boolean }) {
+  const fc = (s.funding_class ?? "unknown") as keyof typeof FUNDING_LABEL;
+  const d = deadlineText(s);
+  return (
+    <motion.div variants={stagger.item} className="trow" role="row">
+      <div className="c-main row" style={{ "--gap": "14px", flexWrap: "nowrap" } as any}>
+        <span className="logo-tile" style={{ background: TILE[s.country] ?? "#333" }} aria-hidden>{initials(s.provider)}</span>
+        <div style={{ minWidth: 0 }}>
+          <Link to={`/scholarships/${s.id}`} className="name">{s.name}</Link>
+          <div className="tiny" style={{ marginTop: 3 }}>
+            {COUNTRY[s.country]?.name} · {(s.levels ?? []).map((l: string) => (l === "phd" ? "PhD" : l[0].toUpperCase() + l.slice(1))).join(", ") || "Levels n/a"}
+            {s.applicant_type !== "new" && ` · ${s.applicant_type === "both" ? "new & continuing" : "continuing students"}`}
+          </div>
+          {!!s.is_test_data && <div style={{ marginTop: 6 }}><TestBadge /></div>}
+        </div>
       </div>
-      <Link to={`/scholarships/${s.id}`} className="card-link">
-        <h3>{s.name}</h3>
-      </Link>
-      <div className="stack subtle" style={{ "--gap": "4px" } as any}>
-        <span className="row" style={{ "--gap": "6px" } as any}><Landmark size={14} />{s.provider}</span>
-        <span className="row" style={{ "--gap": "6px" } as any}><GraduationCap size={14} />{(s.levels ?? []).join(" · ") || "Levels not stated"}{s.applicant_type !== "new" ? ` · ${s.applicant_type === "both" ? "new & continuing" : "continuing students"}` : ""}</span>
-        <span className="row" style={{ "--gap": "6px" } as any}><CalendarClock size={14} />{s.deadline_text ? s.deadline_text.slice(0, 90) : "Deadline not confirmed"}</span>
+      <div className="c-fund"><span className={`fund ${fc === "unknown" ? "unknown" : ""}`}>{FUNDING_LABEL[fc]}</span></div>
+      <div className="c-dead"><div className="num" style={{ fontSize: 14, fontWeight: 500 }}>{d.main}</div>{d.sub && <div className="tiny clamp1" title={d.sub}>{d.sub}</div>}</div>
+      <div className="c-status">{elig ? <EligBadge status={elig} /> : <StatusBadge status={s.status} method={s.verification_method} />}</div>
+      <div className="c-meta">
+        {elig ? <EligBadge status={elig} /> : <StatusBadge status={s.status} method={s.verification_method} />}
+        <span className={`fund ${fc === "unknown" ? "unknown" : ""}`} style={{ fontSize: 13 }}>{FUNDING_LABEL[fc]}</span>
+        <span className="tiny">Deadline: {d.main}</span>
       </div>
-      {s.funding_summary && <p className="muted" style={{ fontSize: 14, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{s.funding_summary}</p>}
-      <div className="row between" style={{ marginTop: "auto" }}>
-        <span className="row" style={{ "--gap": "6px" } as any}>
-          {!!s.is_test_data && <TestBadge />}
-          {elig && <EligBadge status={elig} prefix="You" />}
-          {s.rule_count !== undefined && <span className="subtle">{s.verified_rules}/{s.rule_count} rules verified</span>}
-        </span>
-        <span className="row" style={{ "--gap": "6px" } as any}>
-          {onCompare && (
-            <button className={`btn btn-sm ${comparing ? "btn-primary" : "btn-soft"}`} aria-pressed={comparing} onClick={onCompare}>
-              {comparing ? "Comparing" : "Compare"}
-            </button>
-          )}
-          <Link to={`/scholarships/${s.id}`} className="btn btn-ghost btn-sm" aria-label={`Open ${s.name}`}>Details <ArrowUpRight size={14} /></Link>
-        </span>
+      <div className="c-act row" style={{ "--gap": "6px", justifyContent: "flex-end", flexWrap: "nowrap" } as any}>
+        {onCompare && (
+          <button className={`btn btn-sm icon-btn ${comparing ? "btn-primary" : "btn-soft"}`} aria-pressed={comparing} aria-label={`${comparing ? "Remove" : "Add"} ${s.name} ${comparing ? "from" : "to"} comparison`} title="Compare" onClick={onCompare}>
+            {comparing ? <Check size={15} /> : <Plus size={15} />}
+          </button>
+        )}
+        <Link to={`/scholarships/${s.id}`} className="btn btn-primary btn-sm" aria-label={`View ${s.name}`}>View <ArrowRight size={14} /></Link>
       </div>
-    </motion.article>
+    </motion.div>
   );
 }

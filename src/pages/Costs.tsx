@@ -49,9 +49,8 @@ export function Costs() {
 
   return (
     <Page>
-      <p className="eyebrow">Cost planner</p>
-      <h1 style={{ fontSize: "clamp(2rem,4.5vw,3.2rem)", marginTop: 6 }}>What will it actually cost?</h1>
-      <p className="muted" style={{ maxWidth: 680, marginTop: 10 }}>Enter figures from the official university, embassy and scholarship pages. Raasta adds them up, subtracts only what a scholarship actually covers, and shows the gap and the cash you need before you leave.</p>
+      <h1>What will it actually cost?</h1>
+      <p className="lead" style={{ maxWidth: 680, marginTop: 10 }}>Enter figures from the official university, embassy and scholarship pages. Raasta adds them up, subtracts only what a scholarship actually covers, and shows the gap and the cash you need before you leave.</p>
 
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(340px,1fr))", gap: 20, marginTop: 24, alignItems: "start" }}>
         <div className="card stack">

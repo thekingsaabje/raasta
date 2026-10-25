@@ -265,20 +265,70 @@ describe("public catalogue and reports", () => {
 });
 
 describe("source monitor", () => {
-  it("records failures, marks inaccessible after repeats, and flags changed content", async () => {
+  const page = (deadline: string, nav = "Home") =>
+    `<html><nav>${nav} | News | ${Math.random()}</nav><main><h1>Scholarship call 2027</h1><p>Applications close on ${deadline}. Open to international students from eligible countries.</p></main><script>var t=${Date.now()}</script></html>`;
+  const count = async (env: any, sql: string) => (await env.DB.prepare(sql).first()).n as number;
+
+  it("failures never touch scholarship status; repeated failures open one task", async () => {
     const env = makeEnv();
     await env.DB.prepare("INSERT INTO sources (id, name, country, category, url) VALUES ('s1','S','CN','government','https://example.org/a')").run();
+    await seedScholarship(env, { status: "VERIFIED_OPEN", deadline_date: "2099-01-01" });
+    await env.DB.prepare("UPDATE scholarships SET source_id = 's1'").run();
     const failing = (async () => new Response("", { status: 503 })) as unknown as typeof fetch;
-    for (let i = 0; i < 3; i++) await runSourceChecks(env.DB, 5, failing);
+    for (let i = 0; i < 5; i++) await runSourceChecks(env.DB, 5, failing);
     expect((await env.DB.prepare("SELECT review_status FROM sources WHERE id='s1'").first<any>()).review_status).toBe("inaccessible");
+    expect((await env.DB.prepare("SELECT status FROM scholarships").first<any>()).status).toBe("VERIFIED_OPEN");
+    expect(await count(env, "SELECT COUNT(*) AS n FROM review_tasks WHERE kind='source_failing' AND status='open'")).toBe(1);
+    expect(await count(env, "SELECT COUNT(*) AS n FROM source_checks")).toBe(5);
+  });
 
-    let body = "<p>Deadline 1 March</p>";
-    const ok = (async () => new Response(body, { status: 200 })) as unknown as typeof fetch;
-    await env.DB.prepare("UPDATE sources SET review_status='indexed', fail_count=0 WHERE id='s1'").run();
+  it("menu/script noise is ignored; a real content change opens exactly one review task", async () => {
+    const env = makeEnv();
+    await env.DB.prepare("INSERT INTO sources (id, name, country, category, url) VALUES ('s1','S','CN','government','https://example.org/a')").run();
+    let deadline = "1 March 2027";
+    const ok = (async () => new Response(page(deadline), { status: 200 })) as unknown as typeof fetch;
     await runSourceChecks(env.DB, 5, ok);
-    body = "<p>Deadline 15 March</p>";
-    const r = await runSourceChecks(env.DB, 5, ok);
-    expect(r.results[0].changed).toBe(true);
+    const same = await runSourceChecks(env.DB, 5, ok); // nav and script differ, main content does not
+    expect(same.results[0].changed).toBe(false);
+    deadline = "15 March 2027";
+    expect((await runSourceChecks(env.DB, 5, ok)).results[0].changed).toBe(true);
+    deadline = "20 March 2027";
+    await runSourceChecks(env.DB, 5, ok); // second change while the task is still open
+    expect(await count(env, "SELECT COUNT(*) AS n FROM review_tasks WHERE kind='source_changed' AND status='open'")).toBe(1);
     expect((await env.DB.prepare("SELECT review_status FROM sources WHERE id='s1'").first<any>()).review_status).toBe("outstanding");
+  });
+
+  it("flags verified-open records whose deadline passed, without changing them", async () => {
+    const env = makeEnv();
+    await seedScholarship(env, { status: "VERIFIED_OPEN", deadline_date: "2020-01-01" });
+    await runSourceChecks(env.DB, 5, (async () => new Response("")) as unknown as typeof fetch);
+    await runSourceChecks(env.DB, 5, (async () => new Response("")) as unknown as typeof fetch);
+    expect(await count(env, "SELECT COUNT(*) AS n FROM review_tasks WHERE kind='deadline_passed'")).toBe(1);
+    expect((await env.DB.prepare("SELECT status FROM scholarships").first<any>()).status).toBe("VERIFIED_OPEN");
+  });
+
+  it("error reports open a review task", async () => {
+    const env = makeEnv();
+    await seedScholarship(env);
+    await client(env).post("/reports", { scholarshipId: "test-sch", message: "Deadline moved to April" });
+    expect(await count(env, "SELECT COUNT(*) AS n FROM review_tasks WHERE kind='error_report'")).toBe(1);
+  });
+});
+
+describe("admin-issued password reset", () => {
+  it("issues a single-use link, resets the password and signs out old sessions; students can't issue links", async () => {
+    const env = makeEnv();
+    const s = client(env);
+    await s.register("s1@test.local");
+    expect((await s.post("/admin/users/reset-link", { email: "s1@test.local" })).status).toBe(403);
+    const ad = client(env);
+    await ad.register("admin@test.local");
+    const link = (await ad.post("/admin/users/reset-link", { email: "s1@test.local" })).json.link as string;
+    const token = new URL(link).searchParams.get("token")!;
+    const anon = client(env);
+    expect((await anon.post("/auth/reset", { token, password: "a brand new password" })).status).toBe(200);
+    expect((await anon.post("/auth/reset", { token, password: "another new password" })).status).toBe(400); // single use
+    expect((await s.get("/me/profile")).status).toBe(401); // old session revoked
+    expect((await anon.post("/auth/login", { email: "s1@test.local", password: "a brand new password" })).status).toBe(200);
   });
 });

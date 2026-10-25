@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import type { AppEnv } from "./env";
 import { createSession, destroySession, hashPassword, loadUser, requireAdmin, requireUser, verifyPassword } from "./auth";
-import { audit, newId, now, parseJsonCols, rateLimit, today } from "./util";
+import { audit, newId, now, parseJsonCols, rateLimit, sha256Hex, today } from "./util";
 import { getProfile, getScholarship, listRequirements, listTasks, notify, SCH_JSON } from "./data";
 import { profileSchema } from "../shared/profile";
 import { assess } from "../shared/eligibility";
@@ -10,7 +10,7 @@ import { calculate, COST_CATEGORIES } from "../shared/finance";
 import { daysUntil, nextActions, progress, blockedBy } from "../shared/progress";
 import { generateChecklist } from "../shared/checklist";
 import { capabilities, checkDocument, coachingQuestions, DOC_KINDS, outlineFromFacts, type DocKind } from "../shared/writing";
-import { APPLICATION_STAGES, OPPORTUNITY_STATUSES, STUDENT_STATUSES, VERIFIED_STATUSES, WRITING_MODES, type Scholarship } from "../shared/types";
+import { APPLICATION_STAGES, FUNDING_CLASSES, OPPORTUNITY_STATUSES, STUDENT_STATUSES, VERIFIED_STATUSES, WRITING_MODES, type Scholarship } from "../shared/types";
 import { runSourceChecks } from "./monitor";
 
 export const app = new Hono<AppEnv>().basePath("/api");
@@ -119,9 +119,14 @@ app.post("/reports", async (c) => {
   const b = await body(c, z.object({ scholarshipId: z.string().max(100), requirementId: z.string().max(100).optional(), message: z.string().min(5).max(2000) }));
   if (!(await getScholarship(c.env.DB, b.scholarshipId))) return c.json({ error: "Not found." }, 404);
   const id = newId();
-  await c.env.DB.prepare("INSERT INTO error_reports (id, user_id, scholarship_id, requirement_id, message, created_at) VALUES (?, ?, ?, ?, ?, ?)")
-    .bind(id, c.get("user")?.id ?? null, b.scholarshipId, b.requirementId ?? null, b.message, now())
-    .run();
+  await c.env.DB.batch([
+    c.env.DB.prepare("INSERT INTO error_reports (id, user_id, scholarship_id, requirement_id, message, created_at) VALUES (?, ?, ?, ?, ?, ?)").bind(
+      id, c.get("user")?.id ?? null, b.scholarshipId, b.requirementId ?? null, b.message, now(),
+    ),
+    c.env.DB.prepare("INSERT OR IGNORE INTO review_tasks (kind, scholarship_id, detail, dedupe_key, created_at) VALUES ('error_report', ?, ?, ?, ?)").bind(
+      b.scholarshipId, b.message.slice(0, 300), `report:${id}`, now(),
+    ),
+  ]);
   return c.json({ id }, 201);
 });
 
@@ -168,6 +173,24 @@ app.post("/auth/logout", async (c) => {
 });
 
 app.get("/auth/me", (c) => c.json({ user: c.get("user") }));
+
+// Single-use reset link issued by an admin (no email provider yet). Resetting signs out every session.
+app.post("/auth/reset", async (c) => {
+  if (!(await rateLimit(c.env.DB, `reset:${ip(c)}`, 10, 3600))) return c.json({ error: "Too many attempts. Try later." }, 429);
+  const b = await body(c, z.object({ token: z.string().regex(/^[0-9a-f]{64}$/), password: z.string().min(10, "Use at least 10 characters.").max(200) }));
+  const db = c.env.DB;
+  const r = await db.prepare("SELECT * FROM password_resets WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?").bind(await sha256Hex(b.token), now()).first<Record<string, string>>();
+  if (!r) return c.json({ error: "This reset link is invalid or has expired. Ask an admin for a new one." }, 400);
+  const iterations = Math.min(100_000, Math.max(20_000, Number(c.env.PBKDF2_ITERATIONS) || 100_000));
+  const { hash, salt } = await hashPassword(b.password, undefined, iterations);
+  await db.batch([
+    db.prepare("UPDATE users SET password_hash = ?, password_salt = ? WHERE id = ?").bind(hash, salt, r.user_id),
+    db.prepare("UPDATE password_resets SET used_at = ? WHERE token_hash = ?").bind(now(), r.token_hash),
+    db.prepare("DELETE FROM sessions WHERE user_id = ?").bind(r.user_id),
+  ]);
+  await audit(db, null, "password_reset_used", "user", r.user_id);
+  return c.json({ ok: true });
+});
 
 // ---------- student (everything below is scoped to the signed-in user) ----------
 const me = new Hono<AppEnv>();
@@ -388,7 +411,41 @@ me.get("/dashboard", async (c) => {
     .filter((x) => x.applicable && (x.student_status === "NEEDS_REVIEW" || x.verified_status === "NEEDS_REVIEW" || x.change_note || x.student_status === "BLOCKED"))
     .map((x) => ({ id: x.id, title: x.title, why: x.change_note ?? (x.student_status === "BLOCKED" ? "Marked blocked" : "Needs review") }));
   const docs = tasks.filter((x) => x.applicable && (x.documents as string[]).length > 0);
+  const appTitle = Object.fromEntries(apps.results.map((a) => [a.id, a.title]));
+
+  // Relevant opportunities: real (non-test) awards not yet saved or tracked whose published rules
+  // the student does not fail. Ordered MET first; never presented as a chance of success.
+  const tracked = new Set([...apps.results.map((a) => a.scholarship_id), ...(await db.prepare("SELECT scholarship_id FROM saved_scholarships WHERE user_id = ?").bind(id).all<{ scholarship_id: string }>()).results.map((r) => r.scholarship_id)]);
+  const { results: schRows } = await db.prepare("SELECT * FROM scholarships WHERE is_test_data = 0 AND status NOT IN ('VERIFIED_CLOSED','CANCELLED')").all<Record<string, unknown>>();
+  const allReqs = await listRequirements(db);
+  const rank: Record<string, number> = { MET: 0, NEEDS_REVIEW: 1, UNKNOWN: 2 };
+  const opportunities = Object.keys(profile).length
+    ? schRows
+        .map((r) => parseJsonCols(r, SCH_JSON) as unknown as Scholarship)
+        .filter((s) => !tracked.has(s.id) && (!profile.targetCountries?.length || profile.targetCountries.includes(s.country)) && (!profile.targetLevel || s.levels.includes(profile.targetLevel)))
+        .map((s) => ({ s, a: assess(s, allReqs.filter((x) => x.scholarship_id === s.id), profile, t) }))
+        .filter((x) => x.a.overall !== "NOT_MET")
+        .sort((x, y) => rank[x.a.overall] - rank[y.a.overall])
+        .slice(0, 5)
+        .map(({ s, a }) => ({ id: s.id, name: s.name, country: s.country, status: s.status, verification_method: s.verification_method, funding_class: s.funding_class, overall: a.overall }))
+    : [];
+
+  const funding: { title: string; why: string; to: string }[] = [];
+  if (profile.budgetPkr === undefined) funding.push({ title: "Estimate your budget", why: "Add the amount your family can legitimately arrange, so funding gaps can be calculated.", to: "/app/profile" });
+  if (apps.results.length) funding.push({ title: "Plan the real cost of each application", why: "Compare tuition, living, visa and travel against what each award documents it pays.", to: "/costs" });
+  for (const a of apps.results.filter((a) => a.scholarship_id)) {
+    const s = schRows.find((x) => x.id === a.scholarship_id);
+    if (s && (s.funding_class ?? "unknown") === "unknown") funding.push({ title: `Confirm what ${a.title} pays`, why: "Coverage isn't confirmed yet. Check tuition, stipend and housing on the official page.", to: `/scholarships/${a.scholarship_id}` });
+  }
+
   return c.json({
+    opportunities,
+    funding: funding.slice(0, 4),
+    agenda: tasks
+      .filter((x) => x.due_date && x.applicable && !["COMPLETED_BY_STUDENT", "SUBMITTED"].includes(x.student_status))
+      .map((x) => ({ id: x.id, title: x.title, date: x.due_date, confirmed: !!x.due_confirmed, application: appTitle[x.application_id] ?? null, application_id: x.application_id }))
+      .sort((a, b) => (a.date < b.date ? -1 : 1))
+      .slice(0, 20),
     profile,
     overall: progress(tasks),
     applications: perApp,
@@ -396,7 +453,7 @@ me.get("/dashboard", async (c) => {
     deadlines,
     attention,
     documents: { total: docs.length, ready: docs.filter((x) => ["COMPLETED_BY_STUDENT", "SUBMITTED"].includes(x.student_status)).length },
-    nextActions: nextActions(tasks, 3),
+    nextActions: nextActions(tasks, 3).map((x: any) => ({ ...x, application: appTitle[x.application_id] ?? null })),
     notifications: notes.results,
   });
 });
@@ -564,7 +621,10 @@ admin.get("/coverage", async (c) => {
     SUM(review_status = 'VERIFIED') AS verified, SUM(review_status = 'CONFLICTING') AS conflicting FROM requirements`);
   const reports = await one("SELECT COUNT(*) AS open FROM error_reports WHERE status = 'open'");
   const byCountry = (await db.prepare("SELECT country, COUNT(*) AS sources FROM sources GROUP BY country").all()).results;
-  return c.json({ sources, scholarships: sch, requirements: req, reports, byCountry });
+  const byStatus = (await db.prepare("SELECT status, COALESCE(verification_method, 'none') AS method, COUNT(*) AS n FROM scholarships WHERE is_test_data = 0 GROUP BY status, method ORDER BY status").all()).results;
+  const tasks = (await db.prepare("SELECT kind, COUNT(*) AS n FROM review_tasks WHERE status = 'open' GROUP BY kind").all()).results;
+  const job = await one("SELECT COUNT(*) AS checks, SUM(ok) AS ok, MAX(checked_at) AS last FROM source_checks WHERE checked_at > datetime('now', '-1 day')");
+  return c.json({ sources, scholarships: sch, requirements: req, reports, byCountry, byStatus, tasks, job });
 });
 
 admin.get("/sources", async (c) => c.json({ sources: (await c.env.DB.prepare("SELECT * FROM sources ORDER BY country, name").all()).results }));
@@ -585,6 +645,7 @@ admin.patch("/scholarships/:id", async (c) => {
       deadline_date: z.iso.date().nullable().optional(),
       deadline_text: z.string().max(300).nullable().optional(),
       writing_policy: z.enum(WRITING_MODES).optional(),
+      funding_class: z.enum(FUNDING_CLASSES).optional(),
       evidence_note: z.string().max(2000).optional(),
       reason: z.string().min(3).max(500),
     }),
@@ -598,8 +659,12 @@ admin.patch("/scholarships/:id", async (c) => {
   const t = now();
   const stmts = [
     db.prepare("INSERT INTO record_history (entity, entity_id, version, snapshot, changed_by, reason, changed_at) VALUES ('scholarship', ?, ?, ?, ?, ?, ?)").bind(s.id, s.version, JSON.stringify(s), aid(c), b.reason, t),
-    db.prepare("UPDATE scholarships SET status = ?, deadline_date = ?, deadline_text = ?, writing_policy = ?, evidence_note = ?, last_verified_at = ?, version = version + 1, updated_at = ? WHERE id = ?").bind(
-      next.status, next.deadline_date, next.deadline_text, next.writing_policy, next.evidence_note, verifying ? t : s.last_verified_at, t, s.id,
+    // A reviewer's verification is recorded as 'human'; moving back to review clears the method.
+    db.prepare(
+      "UPDATE scholarships SET status = ?, deadline_date = ?, deadline_text = ?, writing_policy = ?, funding_class = ?, evidence_note = ?, last_verified_at = ?, verification_method = ?, version = version + 1, updated_at = ? WHERE id = ?",
+    ).bind(
+      next.status, next.deadline_date, next.deadline_text, next.writing_policy, next.funding_class ?? "unknown", next.evidence_note,
+      verifying ? t : s.last_verified_at, verifying ? "human" : null, t, s.id,
     ),
   ];
   // A deadline change flows into every linked application and its submission task.
@@ -656,6 +721,38 @@ admin.patch("/tasks/:id/verify", async (c) => {
   if (!r.meta.changes) return c.json({ error: "Not found." }, 404);
   await audit(c.env.DB, aid(c), "task_verify", "task", c.req.param("id"), b);
   return c.json({ ok: true });
+});
+
+admin.get("/review-tasks", async (c) => {
+  const { results } = await c.env.DB.prepare(
+    `SELECT t.*, s.name AS source_name, s.url AS source_url, sch.name AS scholarship_name FROM review_tasks t
+     LEFT JOIN sources s ON s.id = t.source_id LEFT JOIN scholarships sch ON sch.id = t.scholarship_id
+     ORDER BY t.status = 'open' DESC, t.id DESC LIMIT 300`,
+  ).all();
+  return c.json({ tasks: results });
+});
+admin.patch("/review-tasks/:id", async (c) => {
+  const b = await body(c, z.object({ status: z.enum(["done", "dismissed"]), note: z.string().min(3).max(500) }));
+  const r = await c.env.DB.prepare("UPDATE review_tasks SET status = ?, resolved_at = ?, resolved_by = ?, detail = detail || ' | ' || ? WHERE id = ? AND status = 'open'")
+    .bind(b.status, now(), aid(c), b.note, Number(c.req.param("id")))
+    .run();
+  if (!r.meta.changes) return c.json({ error: "Not found or already closed." }, 404);
+  await audit(c.env.DB, aid(c), "review_task_close", "review_task", c.req.param("id"), b);
+  return c.json({ ok: true });
+});
+
+admin.post("/users/reset-link", async (c) => {
+  const b = await body(c, z.object({ email: z.email().transform((e) => e.toLowerCase()) }));
+  const u = await c.env.DB.prepare("SELECT id FROM users WHERE email = ?").bind(b.email).first<{ id: string }>();
+  if (!u) return c.json({ error: "No account with that email." }, 404);
+  const raw = crypto.getRandomValues(new Uint8Array(32));
+  const token = [...raw].map((x) => x.toString(16).padStart(2, "0")).join("");
+  await c.env.DB.prepare("INSERT INTO password_resets (token_hash, user_id, expires_at, created_by, created_at) VALUES (?, ?, ?, ?, ?)")
+    .bind(await sha256Hex(token), u.id, new Date(Date.now() + 24 * 3600_000).toISOString(), aid(c), now())
+    .run();
+  await audit(c.env.DB, aid(c), "password_reset_issued", "user", u.id);
+  // Shown once to the admin, who hands it to the student out of band. Never logged or stored in plain text.
+  return c.json({ link: `${new URL(c.req.url).origin}/reset?token=${token}`, expiresInHours: 24 });
 });
 
 admin.get("/audit", async (c) => c.json({ audit: (await c.env.DB.prepare("SELECT * FROM audit_log ORDER BY id DESC LIMIT 200").all()).results }));

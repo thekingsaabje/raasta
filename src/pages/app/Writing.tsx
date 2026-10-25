@@ -52,7 +52,7 @@ export function WritingList() {
   return (
     <div className="stack" style={{ "--gap": "18px" } as any}>
       <div className="row between">
-        <div><p className="eyebrow">Writing Studio</p><h2 style={{ marginTop: 4 }}>Your story, in your words, within the rules.</h2></div>
+        <div><h1>Writing Studio</h1><p className="muted" style={{ marginTop: 8 }}>Your story, in your words, within each provider's rules.</p></div>
         <button className="btn btn-primary" onClick={() => setOpen(true)}><Plus size={15} />New document</button>
       </div>
       <Notice kind="info">Raasta never invents achievements, grades or experiences. Writing help follows each provider's policy. Documents linked to an application use that award's policy, and anything unconfirmed gets coaching only.</Notice>

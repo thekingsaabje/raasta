@@ -39,7 +39,7 @@ export function SettingsPage() {
 
   return (
     <div className="stack" style={{ "--gap": "18px" } as any}>
-      <div><p className="eyebrow">Settings</p><h2 style={{ marginTop: 4 }}>Notifications and privacy</h2></div>
+      <div><h1>Settings</h1><p className="muted" style={{ marginTop: 8 }}>Notifications and your data.</p></div>
       <div className="card stack">
         <h3>In-app reminders</h3>
         {[["deadlines", "Deadline and rule changes"], ["documents", "Missing documents"], ["opportunities", "Verified new opportunities"], ["renewals", "Scholarship reviews and renewals"], ["paused", "Pause all reminders"]].map(([k, l]) => (

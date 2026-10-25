@@ -11,9 +11,8 @@ export function Pricing() {
     <Page>
       <Reveal>
         <div style={{ textAlign: "center", maxWidth: 680, margin: "0 auto 28px" }}>
-          <p className="eyebrow">Pricing</p>
-          <h1 style={{ fontSize: "clamp(2rem,4.5vw,3.2rem)", marginTop: 6 }}>Pay for depth, not for basic facts.</h1>
-          <p className="muted" style={{ marginTop: 12 }}>Scholarship facts, official links and essential eligibility warnings are always free.</p>
+          <h1 className="display" style={{ fontSize: "clamp(2.2rem,4.6vw,3.4rem)" }}>Pay for depth, not for basic facts.</h1>
+          <p className="lead" style={{ marginTop: 14 }}>Scholarship facts, official links and essential eligibility warnings are always free.</p>
         </div>
       </Reveal>
       {data && !data.paymentsEnabled && (

@@ -65,6 +65,9 @@ export interface Scholarship {
   evidence_note: string | null;
   version: number;
   updated_at: string;
+  verification_method?: "agent_evidence" | "human" | null;
+  funding_class?: FundingClass;
+  monitor_url?: string | null;
 }
 
 /** What a scholarship actually pays. Unknown parts stay undefined, never assumed. */
@@ -93,7 +96,15 @@ export interface Requirement {
   retrieved_at: string | null;
   verified_at: string | null;
   version: number;
+  scope?: RuleScope;
 }
+
+/** What a rule decides. Eligibility to apply is not admission, selection, finances or a visa. */
+export const RULE_SCOPES = ["scholarship_eligibility", "admission", "selection", "financial", "visa"] as const;
+export type RuleScope = (typeof RULE_SCOPES)[number];
+
+export const FUNDING_CLASSES = ["full", "partial", "tuition_only", "stipend_only", "unknown"] as const;
+export type FundingClass = (typeof FUNDING_CLASSES)[number];
 
 export type Rule =
   | { kind: "nationality"; allowed: string[] }

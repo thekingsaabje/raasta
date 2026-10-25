@@ -1,5 +1,5 @@
 // Deterministic eligibility engine. No LLM is involved; every outcome is traceable to a stored rule.
-import type { EligibilityStatus, Requirement, Rule, Scholarship } from "./types";
+import type { EligibilityStatus, Requirement, Rule, RuleScope, Scholarship } from "./types";
 import type { Profile } from "./profile";
 
 export interface RuleResult {
@@ -10,6 +10,38 @@ export interface RuleResult {
   ruleVerified: boolean;
   mandatory: boolean;
   sourceUrl: string | null;
+  excerpt: string | null;
+  scope: RuleScope;
+  nextAction: string;
+}
+
+const PROFILE_FIELD: Partial<Record<Rule["kind"], string>> = {
+  nationality: "nationality",
+  target_level: "intended degree",
+  degree_completed: "highest qualification",
+  min_grade: "grade and grading scale",
+  max_age: "date of birth",
+  language: "language test results",
+  max_gap_years: "study gap",
+  existing_scholarship: "current scholarship status",
+  applicant_type: "current study situation",
+  min_experience_years: "experience",
+  field: "field of study",
+};
+
+/** One concrete next step per result, so every outcome is actionable. */
+export function nextActionFor(rule: Rule, status: EligibilityStatus, ruleVerified: boolean): string {
+  if (status === "UNKNOWN") return `Add your ${PROFILE_FIELD[rule.kind] ?? "details"} in your profile.`;
+  if (status === "MET") return ruleVerified ? "Nothing to do for this rule." : "Confirm this rule on the official page; Raasta has not verified it yet.";
+  if (status === "NEEDS_REVIEW") {
+    if (rule.kind === "min_grade") return "Ask the university how your grading scale is assessed (equivalence), in writing.";
+    if (rule.kind === "manual") return "Read this condition on the official page and check it against your documents.";
+    return "Confirm with the provider or institution before relying on this.";
+  }
+  if (!ruleVerified) return "This rule is unverified; check the official page before ruling the award out.";
+  if (rule.kind === "language") return "Book an accepted test, or check whether the provider accepts other proof.";
+  if (rule.kind === "min_grade") return "Look for awards with a lower published minimum, or ask whether other evidence is considered.";
+  return "Look for alternatives in your matches; this published rule excludes your current profile.";
 }
 
 export interface Assessment {
@@ -141,10 +173,23 @@ export function assess(s: Scholarship, reqs: Requirement[], p: Profile, today = 
       status = "NEEDS_REVIEW";
       reason = "Official sources conflict on this rule. " + reason;
     }
-    return { requirementId: r.id, text: r.text, status, reason, ruleVerified, mandatory: !!r.mandatory, sourceUrl: r.source_url };
+    return {
+      requirementId: r.id,
+      text: r.text,
+      status,
+      reason,
+      ruleVerified,
+      mandatory: !!r.mandatory,
+      sourceUrl: r.source_url,
+      excerpt: r.excerpt,
+      scope: r.scope ?? "scholarship_eligibility",
+      nextAction: nextActionFor(r.rule, status, ruleVerified),
+    };
   });
 
-  const mandatory = results.filter((r) => r.mandatory);
+  // Only rules about applying for the award decide the eligibility verdict; admission, selection,
+  // finance and visa rules are shown separately and never turn into a "chance".
+  const mandatory = results.filter((r) => r.mandatory && r.scope === "scholarship_eligibility");
   let overall: EligibilityStatus;
   if (mandatory.some((r) => r.status === "NOT_MET" && r.ruleVerified)) overall = "NOT_MET";
   else if (mandatory.some((r) => r.status === "NOT_MET")) overall = "NEEDS_REVIEW";

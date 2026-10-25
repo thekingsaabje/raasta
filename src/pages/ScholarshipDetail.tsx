@@ -6,6 +6,15 @@ import { COUNTRY, fmtDate, useApi } from "../lib/use";
 import { Link, useRouter } from "../lib/router";
 import { useAuth } from "../lib/auth";
 import { api } from "../lib/api";
+import { FUNDING_LABEL } from "../../shared/funding";
+
+const SCOPE: Record<string, [string, string]> = {
+  scholarship_eligibility: ["Eligibility to apply", "Rules that decide whether you can apply for this award."],
+  admission: ["University admission", "Set by the university; meeting them is separate from the award."],
+  selection: ["Selection criteria", "How applicants are ranked. Meeting rules is not a guarantee of selection."],
+  financial: ["Funding terms", "What is paid, when, and under what conditions."],
+  visa: ["Visa and residence", "Check the embassy's current requirements; a scholarship doesn't remove them automatically."],
+};
 
 export function ScholarshipDetail({ id }: { id: string }) {
   const { user } = useAuth();
@@ -18,10 +27,12 @@ export function ScholarshipDetail({ id }: { id: string }) {
   const [msg, setMsg] = useState("");
   const isSaved = (saved.data?.saved ?? []).some((s: any) => s.id === id);
 
-  if (loading) return <Page><Skeleton h={40} w="60%" /><div style={{ height: 16 }} /><Skeleton h={240} /></Page>;
+  if (loading) return <Page><Skeleton h={36} w="55%" /><div style={{ height: 18 }} /><Skeleton h={320} /></Page>;
   if (error || !data) return <Page><Notice kind="bad">{error ?? "Not found"}</Notice></Page>;
   const s = data.scholarship;
   const results: Record<string, any> = Object.fromEntries((assess.data?.assessment.results ?? []).map((r: any) => [r.requirementId, r]));
+  const verified = s.status?.startsWith("VERIFIED_");
+  const groups = Object.keys(SCOPE).map((k) => [k, data.requirements.filter((r: any) => (r.scope ?? "scholarship_eligibility") === k)] as const).filter(([, rs]) => rs.length);
 
   const toggleSave = async () => {
     if (!user) return go("/signup");
@@ -33,7 +44,7 @@ export function ScholarshipDetail({ id }: { id: string }) {
     if (!user) return go("/signup");
     try {
       const r = await api.post("/me/applications", { scholarshipId: id });
-      toast("Application tracker created with a starting checklist");
+      toast("Tracker created with a starting checklist");
       go(`/app/applications/${r.application.id}`);
     } catch (e: any) {
       toast(e.message);
@@ -44,7 +55,7 @@ export function ScholarshipDetail({ id }: { id: string }) {
       await api.post("/reports", { scholarshipId: id, requirementId: report.reqId, message: msg });
       setReport({ open: false });
       setMsg("");
-      toast("Thanks. Your report is in our review queue.");
+      toast("Thanks, your report is in our review queue.");
     } catch (e: any) {
       toast(e.message);
     }
@@ -52,87 +63,97 @@ export function ScholarshipDetail({ id }: { id: string }) {
 
   return (
     <Page>
-      <Link to="/scholarships" className="btn btn-soft btn-sm"><ArrowLeft size={14} /> Catalogue</Link>
-      <div className="grid" style={{ gridTemplateColumns: "minmax(0,1fr)", gap: 22, marginTop: 18 }}>
-        <Reveal>
-          <div className="stack" style={{ "--gap": "14px" } as any}>
-            <div className="row">
-              <span className="flag">{s.country}</span><span className="subtle">{COUNTRY[s.country]?.name}</span>
-              <StatusBadge status={s.status} />{!!s.is_test_data && <TestBadge />}
-            </div>
-            <h1 style={{ fontSize: "clamp(1.9rem,4vw,3rem)" }}>{s.name}</h1>
-            <p className="muted">{s.provider}</p>
-            <div className="row">
-              <a className="btn btn-primary" href={s.official_url} target="_blank" rel="noopener noreferrer">Official page <ExternalLink size={14} /></a>
-              <button className="btn btn-ghost" onClick={toggleSave}>{isSaved ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}{isSaved ? "Saved" : "Save"}</button>
-              <button className="btn btn-ghost" onClick={track}><Plus size={15} />Track application</button>
-              <button className="btn btn-soft" onClick={() => setReport({ open: true })}><Flag size={14} />Report an error</button>
-            </div>
+      <Link to="/scholarships" className="btn btn-link btn-sm" style={{ textDecoration: "none" }}><ArrowLeft size={14} /> All scholarships</Link>
+      <Reveal>
+        <div className="stack" style={{ "--gap": "14px", margin: "18px 0 28px" } as any}>
+          <div className="row" style={{ "--gap": "8px" } as any}>
+            <span className={`flag flag-${s.country}`}>{s.country}</span><span className="subtle">{COUNTRY[s.country]?.name} · {s.provider}</span>
           </div>
-        </Reveal>
+          <h1 style={{ maxWidth: 860 }}>{s.name}</h1>
+          <div className="row" style={{ "--gap": "8px" } as any}>
+            <StatusBadge status={s.status} method={s.verification_method} />
+            {!!s.is_test_data && <TestBadge />}
+            {assess.data && <EligBadge status={assess.data.assessment.overall} prefix="You" />}
+          </div>
+          <div className="row" style={{ marginTop: 6 }}>
+            <a className="btn btn-primary" href={s.official_url} target="_blank" rel="noopener noreferrer">Official page <ExternalLink size={14} /></a>
+            <button className="btn btn-ghost" onClick={track}><Plus size={15} />Track application</button>
+            <button className="btn btn-ghost" onClick={toggleSave} aria-pressed={isSaved}>{isSaved ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}{isSaved ? "Saved" : "Save"}</button>
+            <button className="btn btn-link" onClick={() => setReport({ open: true })}><Flag size={14} />Report an error</button>
+          </div>
+        </div>
+      </Reveal>
 
-        {s.status !== "VERIFIED_OPEN" && s.status !== "VERIFIED_UPCOMING" && (
+      {!verified && (
+        <div style={{ marginBottom: 20 }}>
           <Notice kind="warn">
             {s.is_test_data
               ? "This is a TEST record used to demonstrate the eligibility engine. It is not a real opportunity."
-              : "A person has not yet confirmed the current call for this award. Treat the deadline and rules below as leads to check on the official page, not as confirmed facts."}
+              : "The current call for this award hasn't been verified yet. Treat the deadline and rules below as leads to confirm on the official page."}
           </Notice>
-        )}
-
-        <div className="grid grid-2" style={{ alignItems: "start" }}>
-          <div className="card stack">
-            <h3>Funding</h3>
-            <p className="muted">{s.funding_summary ?? "Not recorded."}</p>
-            <div className="divider" />
-            <dl className="kv">
-              <dt>Levels</dt><dd>{(s.levels ?? []).join(", ") || "—"}</dd>
-              <dt>Applicants</dt><dd>{s.applicant_type === "new" ? "New applicants" : s.applicant_type === "continuing" ? "Continuing students" : "New & continuing"}</dd>
-              <dt>Route</dt><dd>{s.application_route ?? "—"}</dd>
-              <dt>Deadline</dt><dd>{s.deadline_date ? fmtDate(s.deadline_date) : s.deadline_text ?? "Not confirmed"}</dd>
-              <dt>Academic year</dt><dd>{s.academic_year ?? "—"}</dd>
-              <dt>Retrieved</dt><dd>{fmtDate(s.retrieved_at)}</dd>
-              <dt>Verified</dt><dd>{s.last_verified_at ? fmtDate(s.last_verified_at) : "Not yet"}</dd>
-              <dt>Record version</dt><dd>v{s.version}</dd>
-            </dl>
-            {s.evidence_note && <p className="subtle"><strong>Research note:</strong> {s.evidence_note}</p>}
-          </div>
-
-          <div className="card stack">
-            <div className="row between">
-              <h3>Requirements</h3>
-              {assess.data && <EligBadge status={assess.data.assessment.overall} prefix="You" />}
-            </div>
-            {!user && <p className="subtle"><Link to="/signup">Create a free account</Link> to check each rule against your profile.</p>}
-            {assess.data && <p className="subtle">{assess.data.assessment.summary} {assess.data.assessment.note}</p>}
-            <div className="list">
-              {data.requirements.length === 0 && <p className="muted">No requirements recorded yet.</p>}
-              {data.requirements.map((r: any) => (
-                <div key={r.id} className="list-item stack" style={{ "--gap": "6px" } as any}>
-                  <div className="row between" style={{ alignItems: "flex-start" }}>
-                    <strong style={{ flex: 1, minWidth: 200 }}>{r.text}</strong>
-                    <span className="row" style={{ "--gap": "6px" } as any}>
-                      {results[r.id] && <EligBadge status={results[r.id].status} />}
-                      <span className={`badge ${r.review_status === "VERIFIED" ? "b-ok" : r.review_status === "CONFLICTING" ? "b-bad" : "b-warn"}`}>{r.review_status === "VERIFIED" ? "Rule verified" : r.review_status === "CONFLICTING" ? "Sources conflict" : "Rule unverified"}</span>
-                    </span>
-                  </div>
-                  {results[r.id] && <span className="subtle">{results[r.id].reason}</span>}
-                  {r.excerpt && <blockquote style={{ margin: 0, paddingLeft: 12, borderLeft: "3px solid var(--line)", fontSize: 13 }} className="muted">"{r.excerpt}"</blockquote>}
-                  <div className="row" style={{ "--gap": "10px" } as any}>
-                    {r.source_url && <a className="subtle" href={r.source_url} target="_blank" rel="noopener noreferrer">Source <ExternalLink size={11} style={{ display: "inline" }} /></a>}
-                    <button className="subtle" style={{ background: "none", border: 0, cursor: "pointer", padding: 0, textDecoration: "underline" }} onClick={() => setReport({ open: true, reqId: r.id })}>Report</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
+      )}
+
+      <div className="grid" style={{ gridTemplateColumns: "minmax(0, 1fr) minmax(0, 340px)", gap: 20, alignItems: "start" }} data-detail-grid>
+        <div className="stack" style={{ "--gap": "20px" } as any}>
+          {!user && <Notice kind="info"><span><Link to="/signup">Create a free account</Link> to check each rule against your profile.</span></Notice>}
+          {assess.data && (
+            <div className="sunk"><strong style={{ fontSize: 14.5 }}>{assess.data.assessment.summary}</strong><div className="subtle" style={{ marginTop: 4 }}>{assess.data.assessment.note}</div></div>
+          )}
+          {data.requirements.length === 0 && <div className="panel"><p className="muted">No requirements recorded yet. Use the official page.</p></div>}
+          {groups.map(([scope, reqs]) => (
+            <section key={scope} className="panel panel-flush">
+              <div className="panel-head"><div><h3>{SCOPE[scope][0]}</h3><div className="tiny" style={{ marginTop: 2 }}>{SCOPE[scope][1]}</div></div></div>
+              {reqs.map((r: any) => {
+                const res = results[r.id];
+                return (
+                  <div key={r.id} className="stack" style={{ "--gap": "8px", padding: "16px 20px", borderTop: "1px solid var(--line)" } as any}>
+                    <div className="row between" style={{ alignItems: "flex-start", flexWrap: "nowrap" } as any}>
+                      <strong style={{ fontSize: 15 }}>{r.text}</strong>
+                      <span className="row" style={{ "--gap": "6px", flexShrink: 0 } as any}>
+                        {res && <EligBadge status={res.status} />}
+                        <span className={`badge ${r.review_status === "VERIFIED" ? "b-ok" : r.review_status === "CONFLICTING" ? "b-bad" : "b-neutral"}`}>{r.review_status === "VERIFIED" ? "Rule verified" : r.review_status === "CONFLICTING" ? "Sources conflict" : "Unverified"}</span>
+                      </span>
+                    </div>
+                    {res && <div className="subtle">{res.reason} <span style={{ color: "var(--ink)" }}>Next: {res.nextAction}</span></div>}
+                    {r.excerpt && <blockquote style={{ margin: 0, paddingLeft: 12, borderLeft: "2px solid var(--line-2)", fontSize: 13.5, color: "var(--ink-2)" }}>"{r.excerpt}"</blockquote>}
+                    {r.original_excerpt && <blockquote lang="und" style={{ margin: 0, paddingLeft: 12, borderLeft: "2px solid var(--line-2)", fontSize: 13.5, color: "var(--ink-3)" }}>{r.original_excerpt}</blockquote>}
+                    <div className="row tiny" style={{ "--gap": "14px" } as any}>
+                      {r.source_url && <a href={r.source_url} target="_blank" rel="noopener noreferrer">Source <ExternalLink size={11} style={{ display: "inline" }} /></a>}
+                      {r.retrieved_at && <span>Retrieved {fmtDate(r.retrieved_at)}</span>}
+                      <button className="btn-link" style={{ background: "none", border: 0, padding: 0, cursor: "pointer", font: "inherit", color: "inherit", textDecoration: "underline" }} onClick={() => setReport({ open: true, reqId: r.id })}>Report</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </section>
+          ))}
+        </div>
+
+        <aside className="panel" style={{ position: "sticky", top: 92 }}>
+          <div className="label" style={{ marginBottom: 6 }}>Funding</div>
+          <div className="fund" style={{ fontSize: 18, fontFamily: "var(--serif)" }}>{FUNDING_LABEL[(s.funding_class ?? "unknown") as keyof typeof FUNDING_LABEL]}</div>
+          <p className="subtle" style={{ marginTop: 8 }}>{s.funding_summary ?? "Not recorded."}</p>
+          <div className="divider" style={{ margin: "18px 0" }} />
+          <dl className="kv">
+            <dt>Levels</dt><dd>{(s.levels ?? []).join(", ") || "—"}</dd>
+            <dt>Applicants</dt><dd>{s.applicant_type === "new" ? "New applicants" : s.applicant_type === "continuing" ? "Continuing students" : "New & continuing"}</dd>
+            <dt>Route</dt><dd>{s.application_route ?? "—"}</dd>
+            <dt>Deadline</dt><dd>{s.deadline_date ? <><span className="num">{fmtDate(s.deadline_date)}</span>{!verified && <div className="tiny">not confirmed</div>}</> : s.deadline_text ?? "Not published"}</dd>
+            <dt>Academic year</dt><dd>{s.academic_year ?? "—"}</dd>
+            <dt>Retrieved</dt><dd>{fmtDate(s.retrieved_at)}</dd>
+            <dt>Verified</dt><dd>{s.last_verified_at ? <>{fmtDate(s.last_verified_at)}<div className="tiny">{s.verification_method === "human" ? "by a reviewer" : "automated, with source quote"}</div></> : "Not yet"}</dd>
+            <dt>Record</dt><dd>Version {s.version}</dd>
+          </dl>
+          {s.evidence_note && <><div className="divider" style={{ margin: "18px 0" }} /><p className="tiny"><strong>Research note.</strong> {s.evidence_note}</p></>}
+        </aside>
       </div>
 
       <Modal open={report.open} onClose={() => setReport({ open: false })} title="Report an error">
         <div className="stack">
-          <p className="muted">Tell us what's wrong and, if you can, link the official page that shows the correct information.</p>
-          <textarea className="input" value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="e.g. The deadline on the official page is 15 March, not 1 March. Link: …" maxLength={2000} />
-          <button className="btn btn-primary" disabled={msg.trim().length < 5} onClick={sendReport}>Send report</button>
+          <p className="muted">Tell us what's wrong and, if you can, link the official page with the correct information.</p>
+          <textarea className="input" value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="e.g. The official page says the deadline is 15 March, not 1 March. Link: …" maxLength={2000} aria-label="Describe the error" />
+          <div className="row between"><span className="tiny">{msg.trim().length < 5 ? "At least 5 characters" : `${msg.length}/2000`}</span><button className="btn btn-primary" disabled={msg.trim().length < 5} onClick={sendReport}>Send report</button></div>
         </div>
       </Modal>
     </Page>

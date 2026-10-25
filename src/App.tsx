@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { match, useRouter } from "./lib/router";
 import { useAuth } from "./lib/auth";
 import { Footer, Nav, Page } from "./components/Layout";
@@ -10,8 +10,10 @@ import { Pricing } from "./pages/Pricing";
 import { AuthPage } from "./pages/Auth";
 import { Costs } from "./pages/Costs";
 import { HowItWorks, Privacy } from "./pages/Static";
-import { StudentApp } from "./pages/app/StudentApp";
-import { Admin } from "./pages/Admin";
+import { ResetPage } from "./pages/Reset";
+// Logged-in areas load on demand so the public site stays light.
+const StudentApp = lazy(() => import("./pages/app/StudentApp").then((m) => ({ default: m.StudentApp })));
+const Admin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.Admin })));
 import { Empty, Skeleton } from "./components/ui";
 import { Link } from "./lib/router";
 
@@ -28,7 +30,7 @@ function Guard({ children, admin }: { children: ReactNode; admin?: boolean }) {
       </Page>
     );
   if (admin && user.role !== "admin") return <Page><Empty title="Admins only" /></Page>;
-  return <>{children}</>;
+  return <Suspense fallback={<Page><Skeleton h={300} /></Page>}>{children}</Suspense>;
 }
 
 const routes: [string, (p: Record<string, string>) => ReactNode][] = [
@@ -41,6 +43,7 @@ const routes: [string, (p: Record<string, string>) => ReactNode][] = [
   ["/privacy", () => <Privacy />],
   ["/login", () => <AuthPage mode="login" />],
   ["/signup", () => <AuthPage mode="signup" />],
+  ["/reset", () => <ResetPage />],
   ["/admin", () => <Guard admin><Admin /></Guard>],
 ];
 
@@ -64,7 +67,7 @@ export function App() {
   const key = path.startsWith("/app") ? "/app" : path;
   return (
     <>
-      <a href="#main" className="sr-skip" style={{ position: "absolute", left: -9999 }}>Skip to content</a>
+      <a href="#main" className="skip">Skip to content</a>
       <Nav />
       <AnimatePresence mode="wait">
         <motion.div key={key} id="main" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>

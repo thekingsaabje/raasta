@@ -5,7 +5,7 @@ import { Modal, Notice, Skeleton, StatusBadge, TestBadge, useToast } from "../co
 import { api } from "../lib/api";
 import { fmtDate, useApi } from "../lib/use";
 
-const TABS = ["Coverage", "Sources", "Scholarships", "Reports", "Audit"] as const;
+const TABS = ["Coverage", "Review tasks", "Sources", "Scholarships", "Reports", "Users", "Audit"] as const;
 const OPP = ["VERIFIED_OPEN", "VERIFIED_UPCOMING", "VERIFIED_CLOSED", "CANCELLED", "NEEDS_REVIEW", "CONFLICTING_SOURCES", "UNKNOWN"];
 const POLICY = ["DRAFTING_ALLOWED", "EDITING_ONLY", "COACHING_ONLY", "POLICY_UNCONFIRMED"];
 
@@ -13,10 +13,12 @@ export function Admin() {
   const [tab, setTab] = useState<(typeof TABS)[number]>("Coverage");
   return (
     <Page>
-      <p className="eyebrow">Admin</p>
-      <h2 style={{ marginTop: 4 }}>Source intelligence & review</h2>
-      <div className="chips" style={{ margin: "16px 0" }}>{TABS.map((t) => <button key={t} className="chip" aria-pressed={tab === t} onClick={() => setTab(t)}>{t}</button>)}</div>
+      <h1>Admin · source intelligence</h1>
+      <p className="muted" style={{ marginTop: 8 }}>Coverage, review work, verification and corrections.</p>
+      <div className="seg" role="tablist" style={{ margin: "20px 0", overflowX: "auto", maxWidth: "100%" }}>{TABS.map((t) => <button key={t} role="tab" aria-selected={tab === t} aria-pressed={tab === t} onClick={() => setTab(t)}>{t}</button>)}</div>
       {tab === "Coverage" && <Coverage />}
+      {tab === "Review tasks" && <ReviewTasks />}
+      {tab === "Users" && <Users />}
       {tab === "Sources" && <Sources />}
       {tab === "Scholarships" && <Scholarships />}
       {tab === "Reports" && <Reports />}
@@ -43,7 +45,63 @@ function Coverage() {
           <div key={l as string} className="card stack" style={{ "--gap": "6px" } as any}><span className="subtle">{l}</span><span className="stat">{v}</span><span className="subtle">{s}</span></div>
         ))}
       </div>
-      <div className="card"><h3>Sources by country</h3><div className="row" style={{ marginTop: 10 }}>{data.byCountry.map((c: any) => <span key={c.country} className="badge b-neutral">{c.country}: {c.sources}</span>)}</div></div>
+      <div className="grid grid-2">
+        <div className="panel"><h3>Sources by country</h3><div className="row" style={{ marginTop: 10 }}>{data.byCountry.map((c: any) => <span key={c.country} className="badge b-neutral">{c.country}: {c.sources}</span>)}</div></div>
+        <div className="panel"><h3>Scheduled source checks (last 24h)</h3><p className="muted" style={{ marginTop: 8 }}>{data.job?.checks ? `${data.job.checks} checks, ${data.job.ok ?? 0} succeeded. Last run ${fmtDate(data.job.last)}.` : "No checks in the last 24 hours. Investigate the cron trigger."}</p></div>
+        <div className="panel"><h3>Records by status (real data)</h3><div className="stack" style={{ "--gap": "6px", marginTop: 10 } as any}>{data.byStatus.map((r: any) => <div key={r.status + r.method} className="row between"><StatusBadge status={r.status} method={r.method} /><span className="num">{r.n}</span></div>)}</div></div>
+        <div className="panel"><h3>Open review tasks</h3><div className="stack" style={{ "--gap": "6px", marginTop: 10 } as any}>{data.tasks.length === 0 ? <span className="muted">None</span> : data.tasks.map((t: any) => <div key={t.kind} className="row between"><span>{t.kind.replace("_", " ")}</span><span className="num">{t.n}</span></div>)}</div></div>
+      </div>
+    </div>
+  );
+}
+
+function ReviewTasks() {
+  const { data, reload } = useApi<any>("/admin/review-tasks");
+  if (!data) return <Skeleton h={200} />;
+  const close = async (id: number, status: string) => {
+    const note = prompt("What did you check or change?");
+    if (!note) return;
+    await api.patch(`/admin/review-tasks/${id}`, { status, note });
+    reload();
+  };
+  return (
+    <div className="panel panel-flush">
+      <div className="panel-head"><h3>Review queue</h3><span className="tiny">Opened by the source monitor, deadline checks and student reports</span></div>
+      {data.tasks.length === 0 && <p className="muted" style={{ padding: 20 }}>No review tasks.</p>}
+      {data.tasks.map((t: any) => (
+        <div key={t.id} className="row between" style={{ padding: "14px 20px", borderTop: "1px solid var(--line)", alignItems: "flex-start" }}>
+          <div className="grow">
+            <div className="row" style={{ "--gap": "8px" } as any}><span className={`badge ${t.status === "open" ? "b-warn" : "b-neutral"}`}>{t.kind.replace("_", " ")}</span><strong style={{ fontSize: 14.5 }}>{t.scholarship_name ?? t.source_name ?? "—"}</strong></div>
+            <div className="subtle" style={{ marginTop: 4 }}>{t.detail}</div>
+            <div className="tiny">{fmtDate(t.created_at)}{t.source_url && <> · <a href={t.source_url} target="_blank" rel="noopener noreferrer">source</a></>}</div>
+          </div>
+          {t.status === "open" && <span className="row" style={{ "--gap": "6px" } as any}><button className="btn btn-soft btn-sm" onClick={() => close(t.id, "done")}>Done</button><button className="btn btn-soft btn-sm" onClick={() => close(t.id, "dismissed")}>Dismiss</button></span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Users() {
+  const [email, setEmail] = useState("");
+  const [link, setLink] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const issue = async () => {
+    setErr(null);
+    setLink(null);
+    try {
+      setLink((await api.post("/admin/users/reset-link", { email })).link);
+    } catch (e: any) {
+      setErr(e.message);
+    }
+  };
+  return (
+    <div className="panel stack" style={{ maxWidth: 640 }}>
+      <h3>Password reset link</h3>
+      <p className="muted">There's no email service yet. Issue a single-use link (valid 24 hours) and send it to the student yourself, e.g. by WhatsApp. Confirm their identity first.</p>
+      <div className="row" style={{ flexWrap: "nowrap" } as any}><input className="input" type="email" placeholder="student@email.com" value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Student email" /><button className="btn btn-primary" disabled={!email.includes("@")} onClick={issue}>Issue link</button></div>
+      {err && <Notice kind="bad">{err}</Notice>}
+      {link && <Notice kind="ok"><span style={{ wordBreak: "break-all" }}>Shown once. Copy it now: <strong>{link}</strong></span></Notice>}
     </div>
   );
 }

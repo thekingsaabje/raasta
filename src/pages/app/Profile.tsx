@@ -52,9 +52,8 @@ export function ProfilePage() {
   return (
     <div className="stack" style={{ "--gap": "18px" } as any}>
       <div>
-        <p className="eyebrow">Profile</p>
-        <h2 style={{ marginTop: 4 }}>Tell us only what matters.</h2>
-        <p className="muted">Every field is optional. Anything you skip shows as "unknown", never as a failure. We don't need documents or bank statements.</p>
+        <h1>Your profile</h1>
+        <p className="muted" style={{ marginTop: 8 }}>Every field is optional. Anything you skip shows as "unknown", never as a failure. We don't need documents or bank statements.</p>
       </div>
 
       <Section title="Where are you now?">
