@@ -127,6 +127,7 @@ export function Costs() {
                 <li>What you still pay with a <strong>confirmed</strong> award</li>
               </ol>
               <p className="subtle">Official figures are used where we have them and every number shows where it came from. No bank statements, passports or logins needed.</p>
+              <p className="tiny">Your answers are kept as a draft in this browser only. On a shared computer, use "Start over" when you're done.</p>
               <div className="row">
                 <button className="btn btn-primary btn-lg" onClick={() => { setAnswers(emptyAnswers()); setChatStart(0); setPhase("chat"); }}>Start planning <ArrowRight size={16} /></button>
                 {hasDraft && <button className="btn btn-ghost btn-lg" onClick={() => { setChatStart(Math.max(0, stepsFor(answers).length - 1)); setPhase(answers.costs.length ? "results" : "chat"); }}>Continue where you left off</button>}

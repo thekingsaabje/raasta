@@ -62,17 +62,17 @@ export function sourceOf(r: Reference): Source {
   };
 }
 
-/** Cost lines a reference can prefill. Ranges use the lower bound and say so. */
+/** Cost lines a reference can prefill. Ranges use the UPPER end so a funding gap is never understated. */
 export function lineFromRef(r: Reference, id: string, stage: CostLine["stage"]): CostLine {
   return {
     id,
     category: REF_CATEGORY[r.category] ?? "other",
     label: r.label,
-    amount: r.amount,
+    amount: r.amount_max ?? r.amount,
     currency: r.currency,
     freq: r.unit,
     stage,
-    source: { ...sourceOf(r), note: [r.applies_to, r.amount_max ? `range up to ${r.amount_max} ${r.currency}; lower bound used` : null].filter(Boolean).join(" · ") || undefined },
+    source: { ...sourceOf(r), note: [r.applies_to, r.amount_max ? `range ${r.amount}–${r.amount_max} ${r.currency}; upper end used to be safe` : null].filter(Boolean).join(" · ") || undefined },
   };
 }
 
@@ -100,6 +100,19 @@ export const EXTRA_SUGGESTIONS: { id: string; category: string; label: string; f
   { id: "rent_deposit", category: "deposit", label: "Rent deposit (refundable)", freq: "once", stage: "on_arrival", depositType: "refundable" },
   { id: "tuition_deposit", category: "deposit", label: "Tuition deposit (part of tuition)", freq: "once", stage: "before_visa", depositType: "prepayment" },
 ];
+
+/** References for a category that fit the degree level (rows that name a different level are dropped). */
+export function refsForLevel(refs: Reference[], category: string, level?: string): Reference[] {
+  const words: Record<string, RegExp> = { bachelor: /bachelor|undergrad/i, master: /master|graduate|postgrad/i, phd: /phd|doctora/i };
+  return refs
+    .filter((r) => r.kind === "cost" && r.category === category && r.amount !== null && r.status !== "NEEDS_REVIEW")
+    .filter((r) => {
+      if (!level) return true;
+      const text = `${r.label} ${r.applies_to ?? ""}`;
+      const named = Object.entries(words).filter(([, re]) => re.test(text)).map(([k]) => k);
+      return named.length === 0 || named.includes(level);
+    });
+}
 
 export function bestRef(refs: Reference[], category: string, kind: "cost" | "proof_of_funds" = "cost"): Reference | undefined {
   const rank = { VERIFIED: 0, OFFICIAL_ESTIMATE: 1, NEEDS_REVIEW: 2 } as const;

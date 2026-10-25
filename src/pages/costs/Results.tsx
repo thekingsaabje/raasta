@@ -19,7 +19,10 @@ export function Results({ answers: a, set, refs, liveRates }: { answers: Answers
   const s = result.scenarios[Math.min(sel, result.scenarios.length - 1)];
   const m = (v: number) => money(v, a.display, rates);
   const usedCurrencies = [...new Set([...a.costs.map((c) => c.currency), a.display, ...a.awards.flatMap((w) => [w.stipend?.currency, (w.tuition as any).currency].filter(Boolean) as string[])])].filter((c) => c !== "PKR");
-  const proof = refs.filter((r) => r.kind === "proof_of_funds" && r.country === a.country);
+  const allProof = refs.filter((r) => r.kind === "proof_of_funds" && r.country === a.country);
+  // Outdated, other-route or conflicting figures are kept for transparency but out of the main view.
+  const proof = allProof.filter((r) => r.status !== "NEEDS_REVIEW");
+  const proofOld = allProof.filter((r) => r.status === "NEEDS_REVIEW");
   const maxCat = Math.max(1, ...s.rows.map((r) => r.cost));
 
   return (
@@ -120,6 +123,12 @@ export function Results({ answers: a, set, refs, liveRates }: { answers: Answers
             </div>
           );
         })}
+        {proofOld.length > 0 && (
+          <details className="faq" style={{ padding: "0 20px", borderTop: "1px solid var(--line)" }}>
+            <summary style={{ fontSize: 14 }}>{proofOld.length} conflicting or outdated figure{proofOld.length > 1 ? "s" : ""} (don't use)<Plus size={16} /></summary>
+            {proofOld.map((r) => <p key={r.id} className="tiny">{r.label}: {r.amount?.toLocaleString()} {r.currency} — {r.applies_to}. {r.notes} {r.source_url && <a href={r.source_url} target="_blank" rel="noopener noreferrer">source</a>}</p>)}
+          </details>
+        )}
         <div style={{ padding: "12px 20px", borderTop: "1px solid var(--line)" }} className="tiny">A scholarship doesn't automatically remove proof-of-funds rules, and not every route needs a blocked account. Never use borrowed, fabricated or hidden money as evidence.</div>
       </section>
 

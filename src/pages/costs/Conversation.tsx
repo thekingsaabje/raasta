@@ -6,7 +6,7 @@ import { termsFromCoverage } from "../../../shared/planner";
 import { FUNDING_LABEL } from "../../../shared/funding";
 import { Notice, StatusBadge } from "../../components/ui";
 import {
-  EXTRA_SUGGESTIONS, HOME_CURRENCY, bestRef, lineFromRef, removeLine, unknownSource, upsertLine, userSource,
+  EXTRA_SUGGESTIONS, HOME_CURRENCY, bestRef, lineFromRef, refsForLevel, removeLine, unknownSource, upsertLine, userSource,
   type Answers, type Country, type Reference,
 } from "./model";
 import { EvidenceBadge } from "./bits";
@@ -321,7 +321,7 @@ function StepBody({ step, answers: a, set, refs, scholarships }: { step: StepId;
       );
     }
     case "tuition": {
-      const r = bestRef(refs, "tuition");
+      const options = refsForLevel(refs, "tuition", a.level);
       const l = line("tuition") ?? { id: "tuition", category: "tuition", label: "Tuition", amount: null, currency: home, freq: "year", stage: "during_study", source: unknownSource } as CostLine;
       return (
         <Q title="What is the tuition fee?" help="Use the figure on your programme's official page. Many public German universities charge no tuition, only a semester fee.">
@@ -330,7 +330,12 @@ function StepBody({ step, answers: a, set, refs, scholarships }: { step: StepId;
             <button className="chip" onClick={() => put({ ...l, amount: null, source: unknownSource, label: "Tuition" })}>I don't know yet</button>
           </div>
           <MoneyField label="Tuition" line={l} freqs={["semester", "year", "once"]} onChange={(p) => put({ ...l, ...p, source: p.amount !== undefined ? userSource : l.source, label: "Tuition" })} />
-          <RefHint r={r} onUse={r ? () => put(lineFromRef(r, "tuition", "during_study")) : undefined} />
+          {options.length === 0 ? <RefHint /> : (
+            <div className="stack" style={{ "--gap": "8px" } as any}>
+              <span className="tiny">Official tuition figures on file{a.level ? ` that may fit a ${a.level === "phd" ? "PhD" : a.level}` : ""}. Pick the one for your university, or enter your own:</span>
+              {options.slice(0, 6).map((r) => <RefHint key={r.id} r={r} onUse={() => put({ ...lineFromRef(r, "tuition", "during_study"), label: `Tuition · ${r.authority ?? r.label}` })} />)}
+            </div>
+          )}
           {(a.country === "DE" || refs.some((x) => x.category === "semester_fee")) && <FeeLine refs={refs} a={a} put={put} />}
         </Q>
       );
@@ -399,7 +404,7 @@ function StepBody({ step, answers: a, set, refs, scholarships }: { step: StepId;
 }
 
 function FeeLine({ refs, a, put }: { refs: Reference[]; a: Answers; put: (l: CostLine) => void }) {
-  const r = bestRef(refs, "semester_fee");
+  const r = refsForLevel(refs, "semester_fee", a.level)[0];
   const l = a.costs.find((c) => c.id === "fees") ?? ({ id: "fees", category: "fees", label: "Semester / enrolment fee", amount: null, currency: HOME_CURRENCY[a.country ?? "DE"], freq: "semester", stage: "during_study", source: unknownSource } as CostLine);
   return (
     <div className="stack" style={{ "--gap": "10px", marginTop: 6 } as any}>
