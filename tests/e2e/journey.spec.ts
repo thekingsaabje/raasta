@@ -16,9 +16,9 @@ test("public pages render without console errors", async ({ page }) => {
 
 test("catalogue search and filters", async ({ page }) => {
   await page.goto("/scholarships");
-  await expect(page.getByText(/results?$/)).toBeVisible();
+  await expect(page.getByText(/catalogued awards/)).toBeVisible();
   await page.getByRole("group", { name: "Country" }).getByRole("button", { name: "Germany" }).click();
-  await expect(page.locator("article").first()).toContainText("Germany");
+  await expect(page.locator(".trow").first()).toContainText("Germany");
   await page.getByLabel("Search scholarships").fill("zzzz-no-match");
   await expect(page.getByText("Nothing matches yet")).toBeVisible();
 });
@@ -37,7 +37,7 @@ test("student journey: sign up, profile, matches, track, tick task, writing", as
   await page.getByLabel("Highest completed qualification").selectOption("bachelor");
   await page.getByRole("button", { name: "Save and see matches" }).click();
   await expect(page).toHaveURL(/\/app\/matches/);
-  await expect(page.getByText("How you compare")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your matches" })).toBeVisible();
 
   await page.goto("/scholarships/test-cn-master");
   await expect(page.getByText("This is a TEST record", { exact: false })).toBeVisible();
@@ -52,7 +52,7 @@ test("student journey: sign up, profile, matches, track, tick task, writing", as
   await expect(page.getByRole("checkbox", { name: /Read the official/ })).toHaveAttribute("aria-checked", "true");
 
   await page.goto("/app");
-  await expect(page.getByText("Next three actions")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Next actions" })).toBeVisible();
 
   await page.goto("/app/writing");
   await page.getByRole("button", { name: "New document" }).click();

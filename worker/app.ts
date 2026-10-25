@@ -132,7 +132,8 @@ app.post("/reports", async (c) => {
 
 // ---------- auth ----------
 app.post("/auth/register", async (c) => {
-  if (!(await rateLimit(c.env.DB, `register:${ip(c)}`, 10, 3600))) return c.json({ error: "Too many attempts. Try later." }, 429);
+  const regLimit = Math.min(500, Math.max(1, Number(c.env.REGISTER_LIMIT_PER_HOUR) || 20));
+  if (!(await rateLimit(c.env.DB, `register:${ip(c)}`, regLimit, 3600))) return c.json({ error: "Too many attempts. Try later." }, 429);
   const b = await body(
     c,
     z.object({

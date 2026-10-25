@@ -22,7 +22,9 @@ export function CatalogueTable({ limit, syncUrl }: { limit?: number; syncUrl?: b
   const [funding, setFunding] = useState("");
   const [status, setStatus] = useState("");
   const [hideTest, setHideTest] = useState(true);
-  const [compare, setCompare] = useState<string[]>([]);
+  // Keep the full records so comparisons survive filter changes (e.g. one German + one Italian award).
+  const [picked, setPicked] = useState<any[]>([]);
+  const compare = picked.map((s) => s.id);
   const [showCompare, setShowCompare] = useState(false);
   const [debounced, setDebounced] = useState(q);
 
@@ -42,8 +44,9 @@ export function CatalogueTable({ limit, syncUrl }: { limit?: number; syncUrl?: b
   const eligMap = useMemo(() => Object.fromEntries((elig.data?.assessments ?? []).map((a) => [a.scholarship.id, a.assessment.overall])), [elig.data]);
   const all = (data?.scholarships ?? []).filter((s) => !(hideTest && s.is_test_data) && (!funding || (s.funding_class ?? "unknown") === funding));
   const list = limit ? all.slice(0, limit) : all;
-  const compared = (data?.scholarships ?? []).filter((s) => compare.includes(s.id));
-  const toggle = (id: string) => setCompare((c) => (c.includes(id) ? c.filter((x) => x !== id) : c.length >= 3 ? c : [...c, id]));
+  const compared = picked;
+  const toggle = (s: any) => setPicked((c) => (c.some((x) => x.id === s.id) ? c.filter((x) => x.id !== s.id) : c.length >= 3 ? c : [...c, s]));
+  const setCompare = (v: string[]) => setPicked((c) => c.filter((x) => v.includes(x.id)));
   const filtersOn = !!(level || applicant || funding || status);
 
   return (
@@ -89,7 +92,7 @@ export function CatalogueTable({ limit, syncUrl }: { limit?: number; syncUrl?: b
           </Empty>
         ) : (
           <motion.div variants={stagger.container} initial="hidden" animate="show" key={qs + hideTest + funding}>
-            {list.map((s) => <ScholarshipRow key={s.id} s={s} elig={eligMap[s.id]} onCompare={() => toggle(s.id)} comparing={compare.includes(s.id)} />)}
+            {list.map((s) => <ScholarshipRow key={s.id} s={s} elig={eligMap[s.id]} onCompare={() => toggle(s)} comparing={compare.includes(s.id)} />)}
           </motion.div>
         )}
       </div>

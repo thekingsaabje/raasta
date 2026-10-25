@@ -8,6 +8,8 @@ export interface Env {
   ADMIN_EMAILS?: string;
   /** Password-hash work factor (20k–100k). Lower only if the Workers CPU limit is hit. */
   PBKDF2_ITERATIONS?: string;
+  /** Sign-ups allowed per IP per hour (default 20). */
+  REGISTER_LIMIT_PER_HOUR?: string;
   /** Sources checked per cron run (1–10). */
   MONITOR_BATCH?: string;
 }

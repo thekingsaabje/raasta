@@ -10,6 +10,7 @@ export default defineConfig({
   use: { baseURL, trace: "retain-on-failure" },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["Pixel 7"] } },
+    // The seven journeys run once (desktop) to stay inside the live sign-up rate limit; the core journey runs on both.
+    { name: "mobile", use: { ...devices["Pixel 7"] }, testIgnore: /journeys\.spec/ },
   ],
 });

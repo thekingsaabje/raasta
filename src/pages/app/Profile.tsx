@@ -27,7 +27,8 @@ export function ProfilePage() {
   const toast = useToast();
   const { go } = useRouter();
   useEffect(() => {
-    if (data) setP({ nationality: "PK", ...data.profile });
+    // Merge so a late (or repeated) load never wipes answers the student has already started typing.
+    if (data) setP((prev) => ({ nationality: "PK", ...data.profile, ...prev }));
   }, [data]);
   if (loading) return <Skeleton h={400} />;
 
