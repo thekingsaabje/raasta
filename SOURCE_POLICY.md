@@ -9,7 +9,16 @@ Forums, social media, agents and unofficial directories: **discovery only**, nev
 
 ## Status rules
 - New records enter as `NEEDS_REVIEW`. A page being reachable does not prove it is current.
-- `VERIFIED_OPEN`/`VERIFIED_UPCOMING` require a checked deadline date (enforced by the API) and a human check of the current call's window and material rules.
+- Two verification levels, always shown to students:
+  - `agent_evidence` ("auto-checked"): Raasta research fetched the official page as raw text and quoted it verbatim,
+    and the quote states the current cycle's dates/status. Model-summarised excerpts never count.
+  - `human`: an admin confirmed it in the review screen (with a written reason, kept in history).
+- `VERIFIED_CLOSED` = official page states a passed deadline for a named cycle and no newer call exists.
+  `VERIFIED_UPCOMING`/`OPEN` need current-cycle dates on the official page (API enforces a checked date for human edits).
+- Rules are `VERIFIED` (able to rule a student out) only when they come from a confirmed current cycle with a verbatim quote.
+- Monitoring: every 4 hours (UTC :17, i.e. 08:17/12:17/… PKT) 6 sources are fetched; main content is hashed; a change or
+  3 consecutive failures opens ONE review task. The monitor never changes statuses. Verified-open records past their
+  deadline open a `deadline_passed` task.
 - Conflicting sources (e.g. Chinese vs English) → keep both excerpts, set `CONFLICTING`/`CONFLICTING_SOURCES`.
 - Deadline text is stored exactly as published; `deadline_date` is set only after verification.
 - Paid reports (future): recheck material sources ≤72h before delivery, or disclose that it was not possible.

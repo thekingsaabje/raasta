@@ -37,7 +37,7 @@ export function Overview() {
       {noProfile && <Notice kind="info"><span>Start with your profile. It takes about three minutes and every field is optional. <Link to="/app/profile"><strong>Complete profile →</strong></Link></span></Notice>}
 
       <motion.div className="panel panel-flush" variants={stagger.container} initial="hidden" animate="show">
-        <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 190px), 1fr))", gap: 0 }}>
+        <div className="grid stat-strip" style={{ gap: 0 }}>
           <motion.div variants={stagger.item} className="row" style={{ padding: 20, "--gap": "16px", flexWrap: "nowrap" } as any}>
             <Ring value={o.percent} size={84} />
             <div><div className="tiny">Applicable tasks</div><div style={{ fontWeight: 600 }} className="num">{o.done} of {o.total} done</div><div className="tiny">{o.verified} confirmed by institutions</div></div>

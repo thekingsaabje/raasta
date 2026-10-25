@@ -83,9 +83,10 @@ test("J3 · study gap, low CGPA, no IELTS → unknowns and next actions, not fal
   const a = await call(page, "GET", "/me/assessments/test-cn-master");
   expect(a.json.assessment.overall).toBe("NOT_MET");
   expect(a.json.assessment.results.find((r: any) => r.text.includes("language")).status).toBe("UNKNOWN");
-  // A real, unverified record never rejects on unverified rules.
+  // A "not met" verdict is only ever caused by a verified rule; unverified rules can't reject.
   const all = await call(page, "GET", "/me/assessments");
-  for (const x of all.json.assessments.filter((x: any) => !x.scholarship.is_test_data)) expect(x.assessment.overall).not.toBe("NOT_MET");
+  for (const x of all.json.assessments.filter((x: any) => x.assessment.overall === "NOT_MET"))
+    expect(x.assessment.results.some((r: any) => r.status === "NOT_MET" && r.ruleVerified)).toBe(true);
 });
 
 test("J4 · comparing Germany and Italy", async ({ page }) => {

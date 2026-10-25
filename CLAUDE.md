@@ -16,7 +16,12 @@ Pakistan-first study-abroad platform (China, Germany, Italy). Read HANDOFF.md fi
 - `npm.cmd run db:migrate:local` / `db:seed:local`; remote variants exist. `db:seed:remote` is FIRST DEPLOY ONLY — it wipes requirements and replaces scholarships.
 
 ## Rules that must not be broken
-- Never mark a scholarship VERIFIED_* or a rule VERIFIED without a human check of the current official call.
+- Two verification levels (`scholarships.verification_method`): `agent_evidence` = current-cycle status backed by a VERBATIM quote
+  fetched as raw text (firecrawl markdown / Chrome page text, never a model summary); `human` = confirmed by an admin.
+  No verbatim quote → stays NEEDS_REVIEW. Rules may be VERIFIED only from a confirmed current cycle with a verbatim quote.
+- Production DB: back up first (`wrangler d1 export … --output backups/…`), rehearse on a local copy, apply idempotent SQL
+  (`scripts/build-verification.mjs` pattern). Never re-run seed.sql remotely.
+- The source monitor must never change a scholarship's status; it only opens review tasks.
 - Missing profile data → UNKNOWN, never NOT_MET. Never convert grading scales by arithmetic.
 - No fake counts, testimonials, discounts or "popular" badges. Test data must be prefixed `[TEST]` and `is_test_data=1`.
 - Students cannot set institution-verified status. Every student query is scoped by `user_id`.

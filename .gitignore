@@ -8,3 +8,4 @@ playwright-report
 *.log
 .claude/launch.json
 backups/
+qa-shots/

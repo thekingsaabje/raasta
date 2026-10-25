@@ -270,6 +270,13 @@ footer a { text-decoration: none; color: var(--ink-2); } footer a:hover { color:
 .legend-row { display: grid; grid-template-columns: 190px 1fr; gap: 14px; align-items: center; padding: 10px 0; }
 @media (max-width: 600px) { .legend-row { grid-template-columns: 1fr; gap: 4px; } .kv { grid-template-columns: 1fr; gap: 2px; } .kv dd { margin-bottom: 8px; } .panel:not(.panel-flush), .card { padding: 18px; } }
 @media (max-width: 900px) { [data-detail-grid] { grid-template-columns: 1fr !important; } [data-detail-grid] aside { position: static !important; } }
+.stat-strip { grid-template-columns: 1.4fr repeat(3, 1fr); }
+@media (max-width: 900px) {
+  .stat-strip { grid-template-columns: 1fr 1fr; }
+  .stat-strip > :first-child { grid-column: 1 / -1; border-bottom: 1px solid var(--line); }
+  .stat-strip > :nth-child(2) { border-left: 0 !important; }
+  .stat-strip > :nth-child(4) { border-left: 0 !important; border-top: 1px solid var(--line); grid-column: 1 / -1; }
+}
 .clamp1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

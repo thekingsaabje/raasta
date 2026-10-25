@@ -23,4 +23,30 @@ describe("research seed", () => {
     const all = (await a.get("/me/assessments")).json.assessments;
     for (const x of all.filter((x: any) => !x.scholarship.is_test_data)) expect(x.assessment.overall).not.toBe("MET");
   });
+
+  it("verification update is idempotent and every verified status carries a verbatim quote", async () => {
+    const env = makeEnv();
+    const root = join(import.meta.dirname, "..", "..");
+    await env.DB.exec(readFileSync(join(root, "seed", "seed.sql"), "utf8"));
+    const upd = readFileSync(join(root, "seed", "verification-update.sql"), "utf8");
+    await env.DB.exec(upd);
+    const snap = async () => env.DB.prepare("SELECT (SELECT COUNT(*) FROM requirements) r, (SELECT COUNT(*) FROM record_history) h, (SELECT SUM(version) FROM scholarships) v, (SELECT COUNT(*) FROM review_tasks) t").first<any>();
+    const first = await snap();
+    await env.DB.exec(upd);
+    expect(await snap()).toEqual(first);
+
+    const verified = (await env.DB.prepare("SELECT id, verification_method FROM scholarships WHERE status LIKE 'VERIFIED_%' AND is_test_data = 0").all<any>()).results;
+    expect(verified.length).toBeGreaterThan(0);
+    for (const s of verified) {
+      expect(s.verification_method).toBe("agent_evidence");
+      const q = await env.DB.prepare("SELECT COUNT(*) n FROM requirements WHERE scholarship_id = ? AND excerpt IS NOT NULL").bind(s.id).first<any>();
+      expect(q.n).toBeGreaterThan(0);
+    }
+    // Verified rules exist only on verified (current-cycle) records.
+    const stray = await env.DB.prepare("SELECT COUNT(*) n FROM requirements r JOIN scholarships s ON s.id = r.scholarship_id WHERE r.review_status = 'VERIFIED' AND s.is_test_data = 0 AND s.status NOT LIKE 'VERIFIED_%'").first<any>();
+    expect(stray.n).toBe(0);
+    // Open/upcoming records carry a checked deadline date.
+    const noDate = await env.DB.prepare("SELECT COUNT(*) n FROM scholarships WHERE status IN ('VERIFIED_OPEN','VERIFIED_UPCOMING') AND deadline_date IS NULL").first<any>();
+    expect(noDate.n).toBe(0);
+  });
 });

@@ -14,8 +14,14 @@ Implemented
 - Source monitor treats fetched pages as untrusted: they are normalised and hashed only; nothing from a page is executed or obeyed. Bounded to 20 fetches/run with 15s timeouts.
 - Security headers: nosniff, strict referrer policy, no-store on API.
 
+- Password recovery (no email provider yet): an admin issues a single-use, 24-hour reset link (only its SHA-256 is stored),
+  hands it over out of band after confirming identity; using it changes the password and signs out every session. Audited.
+- Backups: `wrangler d1 export raasta-db --remote --output backups/<date>.sql` before every production change; restore was
+  rehearsed on 2026-10-25 by loading the export into a separate local D1 and applying migrations (counts matched).
+  D1 Time Travel offers point-in-time restore as a second line (see Cloudflare docs for retention on the current plan).
+
 Not yet done (see TODO.md)
-- Email verification and password reset (needs an email provider, e.g. Resend — requires approval).
+- Email verification and self-service password reset (needs an email provider, e.g. Resend — requires approval).
 - Content-Security-Policy header for the SPA; 2FA for admins.
 - D1 backups: use D1 Time Travel (point-in-time restore, included on Workers plans) — document restore drill.
 - Legal review of the privacy notice against Pakistan PECA/draft PDPB, EU GDPR and China PIPL before real users at scale.
