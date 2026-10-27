@@ -1,3 +1,35 @@
+# Raasta: session 6b, PDF calls and China sources (2026-10-27)
+
+**Status: LIVE** (version `94a6a31c`). Backup: `backups/raasta-db-pre-pdf-china-2026-10-27.sql`. No schema change.
+
+## What changed
+- **Official PDF calls are read.** PDFs (≤ 5 MB) are converted to text by Cloudflare Workers AI Markdown Conversion (AI binding `AI`), then go
+  through the same verbatim-quote extraction as web pages. Scanned or too-large PDFs say so. Results are labelled "official PDF read".
+  Cloudflare docs: only *image* conversion uses AI models. On the Workers Free plan, usage beyond the daily allowance fails instead of being billed.
+- **Admin → Discoveries → "Add evidence by pasting":** for official pages that block automated reading (campuschina.org and csc.edu.cn both return
+  HTTP 412). The admin copies the text from the page in their own browser. Same official-host check, quotes only from the pasted text,
+  starts NEEDS_REVIEW, labelled "text pasted by a Raasta reviewer". Pasted entries appear in searches for that country. Re-pasting resets the review.
+- **Two readable official China sources** added (`seed/sources-2026-10-27.sql`, idempotent): Beihang CGS Bilateral Program (EN) and
+  Peking University scholarships (EN). The Chinese Embassy in Pakistan site has no scholarship section; csc.edu.cn blocks bots.
+- Open-web search and the official crawl now run in parallel and take turns for page slots (registered PDFs were crowded out before).
+  Shorter timeouts: a search took 3–7 s live (was 9–56 s locally).
+
+## Tests actually run
+- `npm test`: **133/133** (+3: PDF read via a stand-in converter, scanned/no-converter PDF, admin paste flow).
+- Real Cloudflare converter (REST API) on the Polimi 2027-28 merit call: 13,846 characters in 2.1 s; Raasta found
+  "until 12:00 noon (Italian time) on December 15th 2026" → 15 Dec 2026 12:00 CET = **16:00 PKT**, with the opening date (1 Oct) not counted as a deadline.
+  Note: local `wrangler dev` cannot reach the AI binding on this PC (proxy), so the binding was tested on the live site.
+- Local browser test (built app): admin paste form, then a China search showing the pasted entry (31 Mar 2027 17:00 China time = 14:00 PKT) among 7 real pages.
+- Live: `discover.spec.ts` **2/2**. A live Italy search read the Polimi PDF (15 Dec 2026, 16:00 PKT). CPU per search **53–114 ms** (all `ok`).
+- Cleanup: 3 e2e users deleted. Live: 1 user, 39 sources, 14 discoveries (2 from PDFs) in NEEDS_REVIEW, 22/900 Tavily searches this month.
+
+## Still limited
+- campuschina.org / csc.edu.cn can't be read automatically (by design we don't bypass bot blocks), so China relies on university pages plus pasted evidence.
+- Scanned PDFs (images) aren't read. CPU per search is above the Workers Free 10 ms guideline.
+- Polimi's English requirement wasn't recognised from its wording (shown as "not stated"). The extractor's English patterns need widening.
+
+---
+
 # Raasta: session 6 report, live discovery (2026-10-27)
 
 **Status: LIVE since 2026-10-27** (version `caf93f89`). Production was backed up (`backups/raasta-db-pre-discovery-2026-10-27.sql`), migration 0005 was rehearsed on a copy, then applied.

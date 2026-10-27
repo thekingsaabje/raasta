@@ -11,7 +11,10 @@
 - [x] Deployed 2026-10-27 (backup, rehearsal, migration, live e2e 2/2, e2e users deleted).
 - [x] Tavily key set as a Worker secret (2026-10-27).
 - [ ] Founder: review results in Admin → Discoveries; review `LISTED_DOMAINS` in shared/discovery.ts.
-- [ ] Read PDF calls (Workers AI Markdown Conversion, free tier; needs the AI binding approved).
+- [x] PDF calls read via the Workers AI binding (2026-10-27). Check Workers AI usage on the dashboard after a week.
+- [x] Admin paste-evidence for bot-blocking official pages (campuschina.org, csc.edu.cn).
+- [ ] Founder: paste the current CSC / campuschina.org call text once the 2027-28 call is published.
+- [ ] Widen English-requirement patterns (Polimi's wording was read as "not stated").
 - [ ] CPU per search is 52–64 ms live (free guideline 10 ms). If searches start failing: lower MAX_PAGES/MAX_HTML, or approve Workers Paid ($5/month).
 - [ ] Local only: reset `test-cn-master` to NEEDS_REVIEW in local D1 (4 local e2e tests expect it).
 

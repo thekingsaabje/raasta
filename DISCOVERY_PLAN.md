@@ -5,7 +5,7 @@ Changes from the plan:
 - No LLM at all (deterministic extraction only), so the Workers AI binding isn't needed.
 - Discoveries keep their own review state instead of a review_tasks kind (that table has a CHECK constraint).
 - The five separate statuses exist for discoveries only. The existing route assessment still uses the blended `Fit` (not split yet).
-- PDFs are not read yet (the plan said ≤ 5 MB). Students are told to open the link.
+- PDFs (≤ 5 MB) are read via Workers AI Markdown Conversion since 2026-10-27 (scanned PDFs are not).
 - Admin "confirm" means "quotes checked". It does not promote a discovery into the catalogue yet.
 - Document guidance has no dated sources yet. It avoids numbers and says "check the call / provider".
 

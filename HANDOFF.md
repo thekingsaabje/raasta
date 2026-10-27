@@ -33,6 +33,8 @@ Monitor never changes a scholarship status; change → one `source_changed` task
 - `/app/discover`. Logic: `shared/discovery.ts` (deterministic, no LLM). API: `worker/discovery.ts`. Migration `0005_discovery.sql` applied live (backup: `backups/raasta-db-pre-discovery-2026-10-27.sql`).
 - `TAVILY_API_KEY` is set as a Worker secret (the founder's free account; the key is also in the git-ignored `.dev.vars`). CPU per search on the live site is 52–64 ms (above the 10 ms free guideline, but it completes).
 - Providers: the official-source crawl (always) + Tavily (only if the `TAVILY_API_KEY` secret is set; cap `SEARCH_MONTHLY_CAP`, default 900).
+- PDFs read via the Workers AI binding `AI` (Markdown Conversion; doesn't work in local `wrangler dev` on this PC because of the proxy, so test it live).
+  Admin can paste evidence for bot-blocking official pages (Admin → Discoveries). 39 sources live (BUAA + PKU added 2026-10-27).
 - Discoveries are evidence only: NEEDS_REVIEW → Admin → Discoveries. Changed pages return to review. Details in REPORT.md and DISCOVERY_PLAN.md.
 
 ## Cost Planner (session 4)

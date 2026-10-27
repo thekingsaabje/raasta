@@ -31,6 +31,8 @@ Forums, social media, agents and unofficial directories: **discovery only**, nev
 - Search providers only propose URLs. The Worker fetches each page itself, and only official hosts are used (registered source, listed official
   domain, or university/government-style domain marked "reviewer checks"). Agents, forums and directories are dropped before fetching.
 - Every extracted value is a verbatim sentence from the fetched page; a page whose quotes don't match its text is skipped. Missing → "not stated" / unknown.
+- Pages that block automated reading are never bypassed. An admin may paste text copied from the official page in their own browser;
+  it is labelled "pasted by a Raasta reviewer" with the date and follows the same quote rules. PDFs are converted to text by Cloudflare and quoted the same way.
 - Discoveries are NEEDS_REVIEW (or CONFLICTING). A reviewer confirming means "quotes checked against the live page", not catalogue verification.
   A page that changes after review returns to NEEDS_REVIEW.
 
