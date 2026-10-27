@@ -8,7 +8,10 @@ import { Link, useRouter } from "../lib/router";
 
 export function AuthPage({ mode }: { mode: "login" | "signup" }) {
   const { refresh } = useAuth();
-  const { go } = useRouter();
+  const { go, search } = useRouter();
+  // Only same-site paths are honoured as a return target.
+  const next = search.get("next");
+  const safeNext = next && /^\/[a-z0-9/_-]*$/i.test(next) ? next : null;
   const [f, setF] = useState({ name: "", email: "", password: "", consent: false });
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -22,7 +25,7 @@ export function AuthPage({ mode }: { mode: "login" | "signup" }) {
       if (signup) await api.post("/auth/register", f);
       else await api.post("/auth/login", { email: f.email, password: f.password });
       await refresh();
-      go(signup ? "/app/profile" : "/app");
+      go(safeNext ?? (signup ? "/route" : "/app"));
     } catch (e: any) {
       setErr(e.message);
     } finally {

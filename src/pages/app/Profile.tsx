@@ -63,6 +63,7 @@ export function ProfilePage() {
             ["applying_from_pakistan", "Applying from Pakistan"],
             ["studying_in_china", "Studying in China"],
             ["studying_in_germany_italy", "Studying in Germany or Italy"],
+            ["holds_scholarship", "Have a scholarship, need renewal or more funding"],
           ].map(([v, l]) => <button key={v} type="button" className="chip" role="radio" aria-checked={p.journey === v} aria-pressed={p.journey === v} onClick={() => set("journey", v)}>{l}</button>)}
         </div>
         <div className="grid grid-2">

@@ -8,7 +8,6 @@ async function answerGermany(page: Page) {
   await page.goto("/costs");
   await page.evaluate(() => localStorage.clear());
   await page.goto("/costs");
-  await page.getByRole("button", { name: "Start planning" }).click();
   const next = () => page.getByRole("button", { name: /Continue|See my results/ }).click();
   await page.getByRole("radio", { name: "Germany" }).click();
   await next();
@@ -82,7 +81,7 @@ test("conversation → three-scenario results with hand-checked totals, edit and
   // Start over asks first, then clears the draft.
   page.once("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "Start over" }).click();
-  await expect(page.getByRole("button", { name: "Start planning" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Where do you want to study?" })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("raasta.costplan.draft.v1") ?? "{}").costs?.length ?? 0)).toBe(0);
 });
 
@@ -94,7 +93,8 @@ test("saved plan appears on the dashboard and keeps versions", async ({ page }) 
   await page.getByLabel("Password").fill("e2e-test-password-123");
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/app\/profile/);
+  await expect(page).toHaveURL(/\/route/); // new students start with the study-route assessment
+  await page.goto("/app/profile");
 
   await answerGermany(page);
   await page.getByRole("button", { name: "Save to dashboard" }).click();

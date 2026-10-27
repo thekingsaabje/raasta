@@ -7,7 +7,7 @@ import { CatalogueTable } from "./Catalogue";
 
 const FAQ = [
   ["Is Raasta a consultancy or an agent?", "No. Raasta is a self-service tool. You apply through official systems yourself, and we never ask for university portal passwords."],
-  ["How do you know a scholarship is real and current?", "Every record links to its official source and shows when it was retrieved and checked. A record only shows a verified status after the current call has been checked against a quote from the official page, and the label tells you whether that check was automated or done by a reviewer."],
+  ["How do you know a scholarship is real and current?", "Every record links to its official source and shows when it was retrieved and checked. Research tools collect quotes from official pages, but a record only shows as confirmed after a Raasta reviewer has checked the current call. Until then it is labelled “not yet verified” and treated as a preliminary lead."],
   ["Will Raasta tell me my chances?", "No. We show which published rules you meet. Selection is competitive and decided by the provider, so we never show a probability of success."],
   ["Will Raasta write my SOP?", "Only where the provider allows drafting help. Otherwise the Writing Studio limits itself to editing or coaching, and it never invents achievements."],
   ["What if something is wrong?", "Every scholarship page has a 'Report an error' button. Reports go to a review queue, corrections keep their history, and students tracking that award are notified."],
@@ -41,8 +41,8 @@ export function Home() {
           Find funding in China, Germany and Italy, see exactly which rules you meet, plan the real cost and manage every application. You don't need a consultant for the routine work.
         </motion.p>
         <motion.div className="hero-actions" {...fade(0.2)}>
-          <Link to="/signup" className="btn btn-primary btn-lg">Check my eligibility <ArrowRight size={16} /></Link>
-          <Link to="/how-it-works" className="btn btn-ghost btn-lg">How we verify</Link>
+          <Link to="/route" className="btn btn-primary btn-lg">Find my study route <ArrowRight size={16} /></Link>
+          <Link to="/scholarships" className="btn btn-ghost btn-lg">Browse scholarships</Link>
         </motion.div>
         {cov.data && (
           <motion.p className="subtle" style={{ marginTop: 18 }} {...fade(0.28)}>
@@ -51,14 +51,11 @@ export function Home() {
         )}
       </section>
 
-      <motion.section className="container" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}>
-        <CatalogueTable limit={8} />
-      </motion.section>
-
-      <section className="section container">
+      <section className="section container" style={{ paddingTop: 40 }}>
         <Reveal>
           <div className="page-head" style={{ marginBottom: 8 }}>
             <h2 style={{ maxWidth: 560 }}>From "which scholarship?" to a submitted application.</h2>
+            <Link to="/route" className="btn btn-primary">Start with a few questions <ArrowRight size={15} /></Link>
           </div>
         </Reveal>
         <div className="steps">
@@ -68,6 +65,12 @@ export function Home() {
             </Reveal>
           ))}
         </div>
+      </section>
+
+      {/* Manual browsing stays available, below the guided route. */}
+      <section className="container">
+        <Reveal><div className="page-head" style={{ marginBottom: 14 }}><h2 style={{ fontSize: 24 }}>Prefer to browse yourself?</h2></div></Reveal>
+        <CatalogueTable limit={8} />
       </section>
 
       <section className="container">
@@ -136,7 +139,7 @@ export function Home() {
             <ShieldCheck size={26} color="var(--accent)" style={{ margin: "0 auto 16px" }} />
             <h2 style={{ color: "#fff" }}>Start free. Pay only for depth.</h2>
             <p className="muted" style={{ margin: "12px auto 26px", maxWidth: 520 }}>Search, official links and your eligibility preview are free. Basic scholarship facts and eligibility warnings always will be.</p>
-            <Link to="/signup" className="btn btn-lg" style={{ background: "var(--accent)", color: "var(--ink)" }}>Create a free account <ArrowRight size={16} /></Link>
+            <Link to="/route" className="btn btn-lg" style={{ background: "var(--accent)", color: "var(--ink)" }}>Find my study route <ArrowRight size={16} /></Link>
           </div>
         </Reveal>
       </section>

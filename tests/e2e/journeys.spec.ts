@@ -13,7 +13,8 @@ async function signup(page: Page, tag: string) {
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/app\/profile/);
+  await expect(page).toHaveURL(/\/route/); // new students start with the study-route assessment
+  await page.goto("/app/profile");
   return e;
 }
 
@@ -114,7 +115,6 @@ test("J5 · limited funding with a confirmed award (China, CNY at 40 PKR)", asyn
   await page.goto("/costs");
   await page.evaluate(() => localStorage.clear());
   await page.goto("/costs");
-  await page.getByRole("button", { name: "Start planning" }).click();
   const next = () => page.getByRole("button", { name: /Continue|See my results/ }).click();
   await page.getByRole("radio", { name: "China" }).click();
   await next();

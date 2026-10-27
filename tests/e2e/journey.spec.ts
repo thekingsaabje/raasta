@@ -30,7 +30,8 @@ test("student journey: sign up, profile, matches, track, tick task, writing", as
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("checkbox").check();
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page).toHaveURL(/\/app\/profile/);
+  await expect(page).toHaveURL(/\/route/); // new students start with the study-route assessment
+  await page.goto("/app/profile");
 
   await page.getByRole("radio", { name: "Applying from Pakistan" }).click();
   await page.getByLabel("Degree you want").selectOption("master");
@@ -76,7 +77,6 @@ test("dashboard is private when signed out", async ({ page }) => {
 test("cost planner opens with the conversation", async ({ page }) => {
   await page.goto("/costs");
   await expect(page.getByRole("heading", { name: "Cost Planner" })).toBeVisible();
-  await page.getByRole("button", { name: "Start planning" }).click();
   await expect(page.getByRole("heading", { name: "Where do you want to study?" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Continue" })).toBeDisabled(); // must answer first
 });

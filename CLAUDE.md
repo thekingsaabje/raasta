@@ -16,9 +16,11 @@ Pakistan-first study-abroad platform (China, Germany, Italy). Read HANDOFF.md fi
 - `npm.cmd run db:migrate:local` / `db:seed:local`; remote variants exist. `db:seed:remote` is FIRST DEPLOY ONLY — it wipes requirements and replaces scholarships.
 
 ## Rules that must not be broken
-- Two verification levels (`scholarships.verification_method`): `agent_evidence` = current-cycle status backed by a VERBATIM quote
-  fetched as raw text (firecrawl markdown / Chrome page text, never a model summary); `human` = confirmed by an admin.
-  No verbatim quote → stays NEEDS_REVIEW. Rules may be VERIFIED only from a confirmed current cycle with a verbatim quote.
+- Research evidence NEVER verifies (founder decision, Oct 2026). Only an admin in the review screen sets VERIFIED_*
+  (`verification_method='human'`) or VERIFIED rules. AI/agent research is stored as evidence only: `cycle_state`
+  (open/upcoming/closed/unknown), `proposed_deadline`, `status_reason`, verbatim quotes fetched as raw text.
+  Those records stay NEEDS_REVIEW and are shown as "Looks open · not yet verified" / preliminary leads.
+  `scripts/build-status-sync.mjs` → `seed/status-sync.sql` applies this idempotently and skips human-confirmed records.
 - Production DB: back up first (`wrangler d1 export … --output backups/…`), rehearse on a local copy, apply idempotent SQL
   (`scripts/build-verification.mjs` pattern). Never re-run seed.sql remotely.
 - The source monitor must never change a scholarship's status; it only opens review tasks.

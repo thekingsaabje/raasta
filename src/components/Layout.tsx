@@ -25,6 +25,7 @@ export function Nav() {
         <div className={`nav-links ${open ? "open" : ""}`}>
           <Link to="/scholarships">Scholarships</Link>
           <Link to="/costs">Cost planner</Link>
+          <Link to="/route">Find my route</Link>
           <Link to="/how-it-works">How we verify</Link>
           <Link to="/pricing">Pricing</Link>
           {user?.role === "admin" && <Link to="/admin">Admin</Link>}
@@ -38,7 +39,7 @@ export function Nav() {
           ) : (
             <>
               <Link to="/login" className="btn btn-ghost btn-sm hide-sm">Log in</Link>
-              <Link to="/signup" className="btn btn-primary btn-sm">Start free</Link>
+              <Link to="/route" className="btn btn-primary btn-sm">Find my route</Link>
             </>
           )}
           <button className="btn btn-ghost btn-sm icon-btn menu-btn" aria-label="Menu" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? <X size={16} /> : <Menu size={16} />}</button>
@@ -62,6 +63,7 @@ export function Footer() {
         </div>
         <div className="stack" style={{ "--gap": "8px" } as any}>
           <span className="label">Trust</span>
+          <Link to="/route">Find my route</Link>
           <Link to="/how-it-works">How we verify</Link><Link to="/privacy">Privacy</Link>
         </div>
         <div className="stack" style={{ "--gap": "8px" } as any}>

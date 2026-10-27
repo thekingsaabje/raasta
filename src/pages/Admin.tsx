@@ -170,6 +170,20 @@ function Scholarships() {
       setErr(e.message);
     }
   };
+  // One-click presets: the reviewer still has to give a reason before saving.
+  const preset = (status: string) => setF({ ...f, status, deadline_date: f.deadline_date || (status === "VERIFIED_CLOSED" ? "" : edit.proposed_deadline ?? "") });
+  const confirmRules = async () => {
+    const reason = prompt("What did you check? (Each quoted rule below must match the current official text.)");
+    if (!reason) return;
+    try {
+      const r = await api.post(`/admin/scholarships/${edit.id}/confirm-rules`, { reason });
+      toast(`${r.confirmed} rule(s) confirmed`);
+      setReqs((await api.get(`/scholarships/${edit.id}`)).requirements);
+      reload();
+    } catch (e: any) {
+      toast(e.message);
+    }
+  };
   const verifyReq = async (r: any, review_status: string) => {
     const reason = prompt("Reason / what you checked on the official page:");
     if (!reason) return;
@@ -201,7 +215,20 @@ function Scholarships() {
       <Modal open={!!edit} onClose={() => setEdit(null)} title={edit?.name ?? ""}>
         {edit && (
           <div className="stack">
-            <a href={edit.official_url} target="_blank" rel="noopener noreferrer" className="subtle">Open official source <ExternalLink size={11} style={{ display: "inline" }} /></a>
+            <div className="sunk stack" style={{ "--gap": "6px" } as any}>
+              <div className="label">Research evidence (not confirmation)</div>
+              <div className="row" style={{ "--gap": "8px" } as any}><StatusBadge status={edit.status} cycle={edit.cycle_state} reason={edit.status_reason} /><span className="tiny">Official page shows: {edit.cycle_state ?? "unknown"}{edit.proposed_deadline ? ` · proposed deadline ${edit.proposed_deadline}` : ""}</span></div>
+              {edit.status_reason && <div className="subtle">{edit.status_reason}</div>}
+              {edit.evidence_note && <div className="tiny">{edit.evidence_note}</div>}
+              <a href={edit.official_url} target="_blank" rel="noopener noreferrer" className="subtle">Open official source and check it yourself <ExternalLink size={11} style={{ display: "inline" }} /></a>
+            </div>
+            <div className="row" style={{ "--gap": "6px" } as any}>
+              <span className="tiny">After checking the official page:</span>
+              <button className="btn btn-soft btn-sm" onClick={() => preset("VERIFIED_OPEN")}>Confirm open</button>
+              <button className="btn btn-soft btn-sm" onClick={() => preset("VERIFIED_UPCOMING")}>Confirm upcoming</button>
+              <button className="btn btn-soft btn-sm" onClick={() => preset("VERIFIED_CLOSED")}>Confirm closed</button>
+              <button className="btn btn-soft btn-sm" onClick={() => preset("CONFLICTING_SOURCES")}>Sources conflict</button>
+            </div>
             <label className="field"><span>Status</span><select className="input" value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })}>{OPP.map((o) => <option key={o}>{o}</option>)}</select></label>
             <label className="field"><span>Checked deadline date</span><input className="input" type="date" value={f.deadline_date} onChange={(e) => setF({ ...f, deadline_date: e.target.value })} /></label>
             <label className="field"><span>Deadline text (as published)</span><input className="input" value={f.deadline_text} onChange={(e) => setF({ ...f, deadline_text: e.target.value })} /></label>
@@ -210,11 +237,12 @@ function Scholarships() {
             {err && <Notice kind="bad">{err}</Notice>}
             <button className="btn btn-primary" disabled={f.reason.trim().length < 3} onClick={save}>Save new version</button>
             <div className="divider" />
-            <h3>Rules</h3>
+            <div className="row between"><h3>Rules</h3>{reqs.some((r) => r.review_status !== "VERIFIED" && r.excerpt) && <button className="btn btn-soft btn-sm" onClick={confirmRules}>Confirm all quoted rules</button>}</div>
             {reqs.map((r) => (
               <div key={r.id} className="stack" style={{ "--gap": "4px", borderTop: "1px solid var(--line)", paddingTop: 8 } as any}>
                 <div className="row between"><strong style={{ fontSize: 14 }}>{r.text}</strong><span className={`badge ${r.review_status === "VERIFIED" ? "b-ok" : "b-warn"}`}>{r.review_status}</span></div>
-                {r.excerpt && <span className="subtle">"{r.excerpt}"</span>}
+                {r.excerpt ? <span className="subtle">"{r.excerpt}"</span> : <span className="tiny">No official quote stored. Add one before verifying.</span>}
+                {r.source_url && <a className="tiny" href={r.source_url} target="_blank" rel="noopener noreferrer">Rule source <ExternalLink size={10} style={{ display: "inline" }} /></a>}
                 <span className="row" style={{ "--gap": "6px" } as any}>
                   <button className="btn btn-soft btn-sm" onClick={() => verifyReq(r, "VERIFIED")}>Verify</button>
                   <button className="btn btn-soft btn-sm" onClick={() => verifyReq(r, "CONFLICTING")}>Conflicting</button>

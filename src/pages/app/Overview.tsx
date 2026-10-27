@@ -31,7 +31,7 @@ export function Overview() {
           <h1>Salaam, {user?.name.split(" ")[0]}</h1>
           <p className="muted">{goal ?? "Set your study goal to personalise your matches and tasks."}</p>
         </div>
-        <Link to="/scholarships" className="btn btn-primary">Find scholarships <ArrowRight size={15} /></Link>
+        <Link to="/route" className="btn btn-primary">Find my study route <ArrowRight size={15} /></Link>
       </div>
 
       {noProfile && <Notice kind="info"><span>Start with your profile. It takes about three minutes and every field is optional. <Link to="/app/profile"><strong>Complete profile →</strong></Link></span></Notice>}

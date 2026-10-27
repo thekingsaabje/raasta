@@ -11,6 +11,7 @@ import { AuthPage } from "./pages/Auth";
 import { Costs } from "./pages/Costs";
 import { HowItWorks, Privacy } from "./pages/Static";
 import { ResetPage } from "./pages/Reset";
+import { RoutePage } from "./pages/Route";
 // Logged-in areas load on demand so the public site stays light.
 const StudentApp = lazy(() => import("./pages/app/StudentApp").then((m) => ({ default: m.StudentApp })));
 const Admin = lazy(() => import("./pages/Admin").then((m) => ({ default: m.Admin })));
@@ -44,6 +45,7 @@ const routes: [string, (p: Record<string, string>) => ReactNode][] = [
   ["/login", () => <AuthPage mode="login" />],
   ["/signup", () => <AuthPage mode="signup" />],
   ["/reset", () => <ResetPage />],
+  ["/route", () => <RoutePage />],
   ["/admin", () => <Guard admin><Admin /></Guard>],
 ];
 

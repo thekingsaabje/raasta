@@ -96,7 +96,7 @@ export function ScholarshipDetail({ id }: { id: string }) {
 
       <div className="grid" style={{ gridTemplateColumns: "minmax(0, 1fr) minmax(0, 340px)", gap: 20, alignItems: "start" }} data-detail-grid>
         <div className="stack" style={{ "--gap": "20px" } as any}>
-          {!user && <Notice kind="info"><span><Link to="/signup">Create a free account</Link> to check each rule against your profile.</span></Notice>}
+          {!user && <Notice kind="info"><span><Link to="/route">Answer a few questions</Link> to check each rule against your profile.</span></Notice>}
           {assess.data && (
             <div className="sunk"><strong style={{ fontSize: 14.5 }}>{assess.data.assessment.summary}</strong><div className="subtle" style={{ marginTop: 4 }}>{assess.data.assessment.note}</div></div>
           )}
