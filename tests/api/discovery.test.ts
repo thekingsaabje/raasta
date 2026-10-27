@@ -31,6 +31,11 @@ const fetchStub = vi.fn(async (input: any, init?: any) => {
     return new Response(JSON.stringify({ results: [{ url: "https://www.polimi.it/en/scholarships/merit", title: "Merit" }, { url: "https://agent-example.com/apply", title: "Agent" }] }), { headers: { "content-type": "application/json" } });
   }
   if (url.includes("open.er-api.com")) return new Response(JSON.stringify({ result: "error" }));
+  if (url === "https://www.boell.de/en/moved") {
+    const res = new Response(PAGES["https://agent-example.com/apply"], { headers: { "content-type": "text/html" } });
+    Object.defineProperty(res, "url", { value: "https://agent-example.com/apply" }); // official link that redirects to an agent
+    return res;
+  }
   const html = PAGES[url];
   if (!html) return new Response("not found", { status: 404, headers: { "content-type": "text/html" } });
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } });
@@ -155,6 +160,16 @@ describe("discovery API", () => {
     await a.post(`/admin/discoveries/${id}/review`, { decision: "REJECTED", note: "Not relevant for Pakistani applicants." });
     expect((await s.get(`/me/discoveries/${id}`)).status).toBe(404);
     expect((await s.get("/me/discover/latest")).json.items.map((i: any) => i.id)).not.toContain(id);
+  });
+
+  it("an official link that redirects to a non-official site is skipped", async () => {
+    const env = await setup();
+    PAGES["https://www.boell.de/en/scholarships"] += `<a href="/en/moved">Scholarship call</a>`;
+    const s = client(env);
+    await s.register("r@test.local");
+    const r = await s.post("/me/discover", { profile: PROFILE, countries: ["DE"] });
+    expect(r.json.items.map((i: any) => i.url)).not.toContain("https://www.boell.de/en/moved");
+    expect(r.json.notes.join(" ")).toMatch(/redirected to a non-official site/);
   });
 
   it("per-user daily limit", async () => {

@@ -28,10 +28,10 @@
   (hard stop reserved before each call), with search results cached for 7 days.
 
 ## Tests actually run
-- `npm test`: **128/128** (97 earlier + 24 discovery unit + 7 discovery API). Covers profile matching, evidence (quotes must be verbatim;
+- `npm test`: **129/129** (97 earlier + 25 discovery unit + 7 discovery API). Covers profile matching, evidence (quotes must be verbatim;
   non-official domains dropped), unknown deadlines, conflicts (2 dates, MOI accepted vs rejected, page vs catalogue, rounds not conflicts),
   all six English states, fee totals, document checklist, timeline, save-to-roadmap idempotency, admin-only review, page changes after review,
-  the Tavily quota stop, the cache, and the search key never appearing in responses.
+  the Tavily quota stop, the cache, the search key never appearing in responses, and official links that redirect to non-official sites being skipped.
 - Real official pages (read-only, a handful of fetches): Böll, UniPD, DAAD Pakistan, ER.GO, Tsinghua. All quotes were verbatim.
   Extraction took 1–4 ms per page warm (17 ms on the first cold call).
 - Playwright `discover.spec.ts` locally against real pages: **2/2** (desktop 1440 + Pixel 7), with no sideways scroll on mobile.
@@ -46,7 +46,9 @@
 ## Needs human review
 - Every discovery starts as NEEDS_REVIEW (or CONFLICTING). Only Admin → Discoveries changes that.
 - Document guidance is general (marked "the official call decides"). The Pakistan attestation wording is general and unverified for each call.
-- Domain lists (`LISTED_DOMAINS`, university patterns) should be reviewed. Pattern hosts are labelled "reviewer checks".
+- Domain lists (`LISTED_DOMAINS`, university patterns) need the founder's review: every listed domain is trusted as official.
+  I removed entries I couldn't confirm (jku.at, sssup.it, esu.pd.it, dsu.lombardia.it). Pattern hosts are labelled "reviewer checks".
+- Document guidance has no dated sources yet (validity periods and fees say "check the call / provider" rather than giving numbers).
 
 ## Known limits
 - PDFs aren't read automatically (many Italian calls are PDFs); the student is told to open the link.
@@ -57,6 +59,7 @@
 ## To deploy (after your OK)
 Back up production D1 → rehearse migration 0005 on a local copy → `npm.cmd run db:migrate:remote` → `npm.cmd run deploy` →
 run `discover.spec.ts` live → delete the e2e users.
+Note: live sign-ups are limited to 20 per IP per hour. The discover test adds 2, so the full live suite may need to be split across two hours.
 
 ---
 

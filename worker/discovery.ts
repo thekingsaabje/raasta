@@ -112,14 +112,14 @@ const hostOf = (u: string) => new URL(u).hostname.toLowerCase().replace(/^www\d?
 /** Worth showing: about a scholarship or programme AND states at least one concrete thing (level, date, fee or documents). */
 const useful = (x: Extract) => x.kind !== "unknown" && (x.levels.length > 0 || x.deadlines.length > 0 || x.fees.length > 0 || x.documents.length > 1);
 
-async function readPage(url: string, fetcher: typeof fetch): Promise<{ ok: true; html: string; status: number } | { ok: false; reason: string }> {
+async function readPage(url: string, fetcher: typeof fetch): Promise<{ ok: true; html: string; status: number; finalUrl: string } | { ok: false; reason: string }> {
   try {
     const res = await fetcher(url, { headers: { "user-agent": UA }, redirect: "follow", signal: AbortSignal.timeout(15_000) });
     const type = res.headers.get("content-type") ?? "";
     if (!res.ok) return await res.body?.cancel(), { ok: false, reason: `HTTP ${res.status}` };
     if (type.includes("pdf")) return await res.body?.cancel(), { ok: false, reason: "PDF (not read automatically yet: open the link)" };
     if (!type.includes("html") && !type.includes("text")) return await res.body?.cancel(), { ok: false, reason: `unsupported content (${type.split(";")[0] || "unknown"})` };
-    return { ok: true, html: (await res.text()).slice(0, MAX_HTML), status: res.status };
+    return { ok: true, html: (await res.text()).slice(0, MAX_HTML), status: res.status, finalUrl: res.url || url };
   } catch (e) {
     return { ok: false, reason: e instanceof Error && e.name === "TimeoutError" ? "timed out" : "did not respond" };
   }
@@ -189,6 +189,8 @@ export async function runDiscovery(env: Env, profile: Profile, countries: Countr
     toFetch.map(async (g) => {
       const page = await readPage(g.url, fetcher);
       if (!page.ok) return void notes.push(`${hostOf(g.url)}: ${page.reason}.`);
+      // Redirects are followed, so the page we actually read must also be on an official host.
+      if (page.finalUrl !== g.url && !classifyHost(page.finalUrl, allRegistered)) return void notes.push(`${hostOf(g.url)}: skipped (redirected to a non-official site).`);
       const text = pageText(page.html);
       const hc = countryOfHost(hostOf(g.url));
       const x = extractPage(text, { dayFirst: hc === "IT" || hc === "DE" || hc === "PK" });
