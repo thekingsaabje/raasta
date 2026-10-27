@@ -7,6 +7,14 @@
 - [ ] Optional: move D1 closer to Pakistan (APAC) — requires approving a database delete/recreate or D1 read replication.
 - [ ] Later: domain purchase; payment provider that supports a Pakistan business + PKR.
 
+## Live discovery (session 6)
+- [ ] Founder: approve deploy (backup → rehearse 0005 → migrate remote → deploy → live e2e → delete e2e users).
+- [ ] Founder: create a Tavily free account and set the key with `npx.cmd wrangler secret put TAVILY_API_KEY` (confirm the free plan on tavily.com first).
+- [ ] Founder: review results in Admin → Discoveries; review `LISTED_DOMAINS` in shared/discovery.ts.
+- [ ] Read PDF calls (Workers AI Markdown Conversion, free tier; needs the AI binding approved).
+- [ ] Check CPU time of the first live discovery on the Workers Free plan.
+- [ ] Local only: reset `test-cn-master` to NEEDS_REVIEW in local D1 (4 local e2e tests expect it).
+
 ## Data
 - [ ] Unreadable sources: EDISU Piemonte, Jiangsu Jasmine (jsnu.edu.cn), ANSO and Shanghai funding tables (images), campuschina.org (blocks bots, HTTP 412).
 - [ ] Expand inventory: Chinese provincial/municipal and top-university awards incl. continuing-student renewals; German state schemes; all Italian DSU regions.

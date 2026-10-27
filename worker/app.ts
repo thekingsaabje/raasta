@@ -14,6 +14,7 @@ import { APPLICATION_STAGES, FUNDING_CLASSES, OPPORTUNITY_STATUSES, STUDENT_STAT
 import { runSourceChecks } from "./monitor";
 import { plannerRoutes } from "./planner";
 import { routeRoutes } from "./route";
+import { discoveryRoutes } from "./discovery";
 
 export const app = new Hono<AppEnv>().basePath("/api");
 
@@ -805,5 +806,6 @@ app.route("/admin", admin);
 
 app.route("/", plannerRoutes);
 app.route("/", routeRoutes);
+app.route("/", discoveryRoutes);
 
 app.all("*", (c) => c.json({ error: "Not found." }, 404));

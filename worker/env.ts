@@ -12,6 +12,10 @@ export interface Env {
   REGISTER_LIMIT_PER_HOUR?: string;
   /** Sources checked per cron run (1–10). */
   MONITOR_BATCH?: string;
+  /** Tavily search key (secret, optional). Without it discovery reads registered official sources only. */
+  TAVILY_API_KEY?: string;
+  /** Hard monthly stop for open-web searches (default 900, max 1000 = Tavily free plan). */
+  SEARCH_MONTHLY_CAP?: string;
 }
 
 export interface SessionUser {

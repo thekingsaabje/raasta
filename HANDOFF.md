@@ -29,6 +29,11 @@ Monitor never changes a scholarship status; change → one `source_changed` task
 - Sign-up without `next` lands on `/route`; `?next=/route` returns there and finishes a pending save.
 - Session-5 tests: 97 Vitest, 26/26 Playwright live (desktop + mobile). See REPORT.md.
 
+## Live discovery (session 6, on `dev`, NOT deployed yet)
+- `/app/discover`. Logic: `shared/discovery.ts` (deterministic, no LLM). API: `worker/discovery.ts`. Migration: `0005_discovery.sql` (applied locally only).
+- Providers: the official-source crawl (always) + Tavily (only if the `TAVILY_API_KEY` secret is set; cap `SEARCH_MONTHLY_CAP`, default 900).
+- Discoveries are evidence only: NEEDS_REVIEW → Admin → Discoveries. Changed pages return to review. Details in REPORT.md and DISCOVERY_PLAN.md.
+
 ## Cost Planner (session 4)
 - UI: `src/pages/Costs.tsx` + `src/pages/costs/*`; engine `shared/planner.ts`; API `worker/planner.ts`; migration 0003
   (`cost_references`, `fin_assessments` versioned per plan_id, `fx_rates`). References loaded live from `seed/cost-references.sql` (70 rows).

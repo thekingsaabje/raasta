@@ -1,8 +1,9 @@
-import { FileText, LayoutDashboard, ListChecks, Settings, Sparkles, UserRound } from "lucide-react";
+import { Compass, FileText, LayoutDashboard, ListChecks, Settings, Sparkles, UserRound } from "lucide-react";
 import { Link, match, useRouter } from "../../lib/router";
 import { Overview } from "./Overview";
 import { ProfilePage } from "./Profile";
 import { Matches } from "./Matches";
+import { Discover } from "./Discover";
 import { Applications, ApplicationDetail } from "./Applications";
 import { WritingList, WritingEditor } from "./Writing";
 import { SettingsPage } from "./Settings";
@@ -11,6 +12,7 @@ const NAV = [
   ["/app", "Overview", LayoutDashboard],
   ["/app/profile", "Profile", UserRound],
   ["/app/matches", "Matches", Sparkles],
+  ["/app/discover", "Discover", Compass],
   ["/app/applications", "Applications", ListChecks],
   ["/app/writing", "Writing Studio", FileText],
   ["/app/settings", "Settings", Settings],
@@ -24,6 +26,7 @@ export function StudentApp() {
   else if ((m = match("/app/writing/:id", path))) view = <WritingEditor id={m.id} />;
   else if (path === "/app/profile") view = <ProfilePage />;
   else if (path === "/app/matches") view = <Matches />;
+  else if (path === "/app/discover") view = <Discover />;
   else if (path === "/app/applications") view = <Applications />;
   else if (path === "/app/writing") view = <WritingList />;
   else if (path === "/app/settings") view = <SettingsPage />;

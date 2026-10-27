@@ -5,7 +5,7 @@ import { Modal, Notice, Skeleton, StatusBadge, TestBadge, useToast } from "../co
 import { api } from "../lib/api";
 import { fmtDate, useApi } from "../lib/use";
 
-const TABS = ["Coverage", "Review tasks", "Sources", "Scholarships", "Reports", "Users", "Audit"] as const;
+const TABS = ["Coverage", "Review tasks", "Discoveries", "Sources", "Scholarships", "Reports", "Users", "Audit"] as const;
 const OPP = ["VERIFIED_OPEN", "VERIFIED_UPCOMING", "VERIFIED_CLOSED", "CANCELLED", "NEEDS_REVIEW", "CONFLICTING_SOURCES", "UNKNOWN"];
 const POLICY = ["DRAFTING_ALLOWED", "EDITING_ONLY", "COACHING_ONLY", "POLICY_UNCONFIRMED"];
 
@@ -18,6 +18,7 @@ export function Admin() {
       <div className="seg" role="tablist" style={{ margin: "20px 0", overflowX: "auto", maxWidth: "100%" }}>{TABS.map((t) => <button key={t} role="tab" aria-selected={tab === t} aria-pressed={tab === t} onClick={() => setTab(t)}>{t}</button>)}</div>
       {tab === "Coverage" && <Coverage />}
       {tab === "Review tasks" && <ReviewTasks />}
+      {tab === "Discoveries" && <Discoveries />}
       {tab === "Users" && <Users />}
       {tab === "Sources" && <Sources />}
       {tab === "Scholarships" && <Scholarships />}
@@ -78,6 +79,57 @@ function ReviewTasks() {
           {t.status === "open" && <span className="row" style={{ "--gap": "6px" } as any}><button className="btn btn-soft btn-sm" onClick={() => close(t.id, "done")}>Done</button><button className="btn btn-soft btn-sm" onClick={() => close(t.id, "dismissed")}>Dismiss</button></span>}
         </div>
       ))}
+    </div>
+  );
+}
+
+const DSTATE: Record<string, string> = { NEEDS_REVIEW: "b-warn", CONFLICTING: "b-bad", REVIEWER_CONFIRMED: "b-ok", REJECTED: "b-neutral" };
+
+// Pages found by live discovery. Evidence only: confirming here means "a person checked the quotes against the live official page".
+function Discoveries() {
+  const [state, setState] = useState("");
+  const { data, reload } = useApi<any>(`/admin/discoveries${state ? `?state=${state}` : ""}`);
+  const decide = async (id: string, decision: string) => {
+    const note = prompt(decision === "REVIEWER_CONFIRMED" ? "What did you check on the official page? (required)" : "Why? (required)");
+    if (!note || note.trim().length < 5) return;
+    await api.post(`/admin/discoveries/${id}/review`, { decision, note });
+    reload();
+  };
+  return (
+    <div className="stack">
+      <Notice kind="info">Found automatically on official domains. Open each page and check every quote before confirming. Confirming does not add the page to the catalogue; it tells students a person checked it. A page that changes later returns here automatically.</Notice>
+      <div className="seg" role="group" aria-label="Filter">{["", "NEEDS_REVIEW", "CONFLICTING", "REVIEWER_CONFIRMED", "REJECTED"].map((s) => <button key={s} aria-pressed={state === s} onClick={() => setState(s)}>{s ? s.replace("_", " ").toLowerCase() : "all"}</button>)}</div>
+      {!data ? <Skeleton h={200} /> : (
+        <div className="panel panel-flush">
+          {data.discoveries.length === 0 && <p className="muted" style={{ padding: 20 }}>Nothing here.</p>}
+          {data.discoveries.map((d: any) => (
+            <details key={d.id} style={{ padding: "14px 20px", borderTop: "1px solid var(--line)" }}>
+              <summary className="row" style={{ "--gap": "8px", cursor: "pointer" } as any}>
+                <span className={`badge ${DSTATE[d.review_state]}`}>{d.review_state.replace("_", " ").toLowerCase()}</span>
+                <strong style={{ fontSize: 14.5 }}>{d.title ?? d.host}</strong>
+                <span className="tiny">{d.host} · {d.host_tier} · {d.provider} · read {fmtDate(d.fetched_at)}</span>
+              </summary>
+              <div className="stack" style={{ "--gap": "8px", marginTop: 10 } as any}>
+                <a className="tiny" href={d.url} target="_blank" rel="noopener noreferrer nofollow">{d.url} <ExternalLink size={12} /></a>
+                {d.review_note && <span className="tiny">Last note: {d.review_note}</span>}
+                {d.conflicts.map((c: any, i: number) => <Notice key={i} kind="bad">{c.detail}</Notice>)}
+                <ul className="tiny" style={{ margin: 0, paddingLeft: 18 }}>
+                  {d.extract.levels.map((l: any) => <li key={"l" + l.value}>Level {l.value}: "{l.quote}"</li>)}
+                  {d.extract.deadlines.map((x: any) => <li key={"d" + x.date}>Deadline {x.date}{x.time ? " " + x.time : ""}{x.timezone ? " " + x.timezone.label : ""}: "{x.quote}"</li>)}
+                  {d.extract.fees.map((f: any, i: number) => <li key={"f" + i}>{f.category} {f.currency} {f.amount} ({f.unit}): "{f.quote}"</li>)}
+                  {(["admission", "scholarship"] as const).map((s) => <li key={s}>English ({s}): {d.extract.english[s].state}{d.extract.english[s].quotes.map((q: string) => ` "${q}"`).join("")}</li>)}
+                  {d.extract.documents.map((x: any) => <li key={"doc" + x.key}>Document {x.key}: "{x.quote}"</li>)}
+                </ul>
+                <span className="row" style={{ "--gap": "6px" } as any}>
+                  <button className="btn btn-soft btn-sm" onClick={() => decide(d.id, "REVIEWER_CONFIRMED")}>Confirm quotes checked</button>
+                  <button className="btn btn-soft btn-sm" onClick={() => decide(d.id, "CONFLICTING")}>Mark conflicting</button>
+                  <button className="btn btn-soft btn-sm" onClick={() => decide(d.id, "REJECTED")}>Reject</button>
+                </span>
+              </div>
+            </details>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

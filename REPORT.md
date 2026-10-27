@@ -1,3 +1,65 @@
+# Raasta: session 6 report, live discovery (2026-10-27)
+
+**Status: built and tested locally on `dev`. NOT deployed, and production is unchanged** (migration 0005 has not been applied remotely).
+
+## What works now
+- **Dashboard → Discover** (`/app/discover`, signed-in only). The student picks countries, a level and a field (prefilled from their profile),
+  and Raasta reads official pages live and shows what each page says, **quoted word for word** with a link and the date it was read.
+- **Search providers:** (1) the official-source crawl (registered sources plus same-site links, $0, always on); (2) Tavily open-web search,
+  restricted to official domains, which switches on only when `TAVILY_API_KEY` is set. Every result passes an official-domain
+  gate (registered / listed / university-style). Agents and forums are dropped and never fetched.
+- **Five separate statuses per result:** eligibility (looks possible / needs confirmation / likely not for you, never "not eligible"),
+  chances (never estimated), readiness (steps left), verification (not verified / reviewer checked / conflicting), and cycle.
+- **Deadlines:** date as published, with opening date, time and timezone. Pakistan time is shown only when both time and zone are stated.
+  An "X until Y" range is read as an opening date plus a deadline. Dates in tables without deadline wording are listed as "other dates", never as deadlines.
+  dd/mm/yyyy is read day-first only on .it/.de/.pk sites.
+- **English/MOI decision, admission and scholarship separately:** IELTS required / other tests / MOI accepted / waiver with approval /
+  not stated / unclear or conflicting, with quotes, the student's score compared where the page gives a minimum, a backup-test step when a
+  waiver needs approval, and email drafts (an MOI request to the registrar, a question to admissions). Raasta never writes certificates.
+- **Fees:** total per currency for the programme length (one-time + yearly + semester + monthly). Amounts whose frequency isn't stated are excluded and listed.
+  Scholarship benefits are shown as income, never subtracted from costs.
+- **Document checklist:** what, why, issuer, how, translation, legalization, validity, format (as stated), fee (no invented numbers),
+  upload, and deadline, plus the exact sentence where the page mentions it.
+- **Timeline + next action:** counted back from the earliest upcoming deadline and labelled as Raasta planning dates.
+- **Save to roadmap:** one `[Unverified lead]` application plus timeline and document tasks (idempotent, with a unique index).
+- **Admin → Discoveries:** confirm that quotes were checked, mark conflicting, or reject (note required, audit logged). Rejected pages disappear for students.
+  A reviewed page that changes returns to review automatically.
+- **Limits:** 5 searches per student per day; ≤ 6 pages fetched per search; pages reused for 7 days; Tavily capped at 900 searches/month
+  (hard stop reserved before each call), with search results cached for 7 days.
+
+## Tests actually run
+- `npm test`: **128/128** (97 earlier + 24 discovery unit + 7 discovery API). Covers profile matching, evidence (quotes must be verbatim;
+  non-official domains dropped), unknown deadlines, conflicts (2 dates, MOI accepted vs rejected, page vs catalogue, rounds not conflicts),
+  all six English states, fee totals, document checklist, timeline, save-to-roadmap idempotency, admin-only review, page changes after review,
+  the Tavily quota stop, the cache, and the search key never appearing in responses.
+- Real official pages (read-only, a handful of fetches): Böll, UniPD, DAAD Pakistan, ER.GO, Tsinghua. All quotes were verbatim.
+  Extraction took 1–4 ms per page warm (17 ms on the first cold call).
+- Playwright `discover.spec.ts` locally against real pages: **2/2** (desktop 1440 + Pixel 7), with no sideways scroll on mobile.
+- Full local Playwright: 24 passed, 4 failed. All 4 failures are caused by local data: the local `[TEST]` record was set to VERIFIED_OPEN in an earlier
+  local admin test, which hides the TEST banner and changes catalogue order. No catalogue or scholarship-detail code changed this session.
+
+## Needs provider credentials
+- Open-web search needs a **Tavily account created by the founder** (free plan, no card per third-party pages dated Jul–Sep 2026:
+  1,000 credits/month; confirm on tavily.com). Then run `npx.cmd wrangler secret put TAVILY_API_KEY` (never paste the key in chat).
+  Without it, the page says plainly that only registered official sources are read.
+
+## Needs human review
+- Every discovery starts as NEEDS_REVIEW (or CONFLICTING). Only Admin → Discoveries changes that.
+- Document guidance is general (marked "the official call decides"). The Pakistan attestation wording is general and unverified for each call.
+- Domain lists (`LISTED_DOMAINS`, university patterns) should be reviewed. Pattern hosts are labelled "reviewer checks".
+
+## Known limits
+- PDFs aren't read automatically (many Italian calls are PDFs); the student is told to open the link.
+- campuschina.org blocks bots, so China results are limited.
+- Table layouts (e.g. ER.GO) give "other dates", not deadlines.
+- Workers Free CPU: a cold first call took 17 ms locally. The deployed CPU time must be checked on the first live run.
+
+## To deploy (after your OK)
+Back up production D1 → rehearse migration 0005 on a local copy → `npm.cmd run db:migrate:remote` → `npm.cmd run deploy` →
+run `discover.spec.ts` live → delete the e2e users.
+
+---
+
 # Raasta — session 5 report: study-route journey and verification (2026-10-27)
 
 ## Summary

@@ -27,6 +27,13 @@ Forums, social media, agents and unofficial directories: **discovery only**, nev
 - Deadline text is stored exactly as published; `deadline_date` is set only after verification (research dates go to `proposed_deadline`).
 - Paid reports (future): recheck material sources ≤72h before delivery, or disclose that it was not possible.
 
+## Live discovery
+- Search providers only propose URLs. The Worker fetches each page itself, and only official hosts are used (registered source, listed official
+  domain, or university/government-style domain marked "reviewer checks"). Agents, forums and directories are dropped before fetching.
+- Every extracted value is a verbatim sentence from the fetched page; a page whose quotes don't match its text is skipped. Missing → "not stated" / unknown.
+- Discoveries are NEEDS_REVIEW (or CONFLICTING). A reviewer confirming means "quotes checked against the live page", not catalogue verification.
+  A page that changes after review returns to NEEDS_REVIEW.
+
 ## Cost and proof-of-funds figures (Cost Planner)
 - Stored in `cost_references` from `research/finance-sources.json` (`npm run refs:build`). Status: VERIFIED (verbatim official quote,
   current period), OFFICIAL_ESTIMATE (an official average or guidance), NEEDS_REVIEW (outdated, other route or conflicting; shown collapsed).
