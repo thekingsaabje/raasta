@@ -238,6 +238,8 @@ export interface Extract {
   documents: DocFound[];
   mentions: { pakistan: string | null; developingCountries: string | null; portal: string | null };
   textLength: number;
+  /** "pdf" when the text came from an official PDF converted to text. */
+  sourceFormat?: "html" | "pdf" | "pasted";
 }
 
 const DEADLINE_WORDS = /deadline|apply by|applications? (?:must|should|can|may) be (?:submitted|received|sent)|closing date|closes on|application period|application window|no later than|until|by \d|scadenz[ae]|entro il|entro e non oltre|bewerbungsschluss|bewerbungsfrist|frist|截止|申请时间/i;

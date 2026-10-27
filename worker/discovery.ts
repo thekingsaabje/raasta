@@ -16,6 +16,8 @@ import { audit, newId, now, rateLimit, sha256Hex, today } from "./util";
 const UA = "RaastaDiscovery/0.1 (+official-source reader for students; low volume)";
 const MAX_PAGES = 6;
 const MAX_HTML = 250_000; // bounds CPU per page on the free plan
+const MAX_PDF = 5_000_000;
+const MAX_TEXT = 150_000;
 const REUSE_DAYS = 7;
 const CACHE_DAYS = 7;
 const LINK_WORDS = /scholar|stipend|fellowship|funding|bursar|borsa|borse|bando|stipendi|奖学金|admission|apply|application|master|graduate|postgrad|phd|doctoral|tuition|fees|international/i;
@@ -44,7 +46,7 @@ export function tavilyProvider(db: D1Database, key: string, monthlyCap: number, 
         method: "POST",
         headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
         body: JSON.stringify({ api_key: key, query, search_depth: "basic", max_results: 5, include_domains: domains }),
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(12_000),
       });
       if (!res.ok) throw new Error(`search provider returned ${res.status}`);
       const data = (await res.json()) as { results?: { url?: string; title?: string }[] };
@@ -70,7 +72,7 @@ async function crawlCandidates(sources: { id: string; url: string }[], fetcher: 
       hits.push({ url: s.url, title: null });
       if (/\.pdf($|\?)/i.test(s.url)) return;
       try {
-        const res = await fetcher(s.url, { headers: { "user-agent": UA }, redirect: "follow", signal: AbortSignal.timeout(12_000) });
+        const res = await fetcher(s.url, { headers: { "user-agent": UA }, redirect: "follow", signal: AbortSignal.timeout(8_000) });
         if (!res.ok || !(res.headers.get("content-type") ?? "").includes("html")) {
           await res.body?.cancel();
           notes.push(`${new URL(s.url).hostname}: page could not be read (HTTP ${res.status}).`);
@@ -112,16 +114,35 @@ const hostOf = (u: string) => new URL(u).hostname.toLowerCase().replace(/^www\d?
 /** Worth showing: about a scholarship or programme AND states at least one concrete thing (level, date, fee or documents). */
 const useful = (x: Extract) => x.kind !== "unknown" && (x.levels.length > 0 || x.deadlines.length > 0 || x.fees.length > 0 || x.documents.length > 1);
 
-async function readPage(url: string, fetcher: typeof fetch): Promise<{ ok: true; html: string; status: number; finalUrl: string } | { ok: false; reason: string }> {
+type PageRead = { ok: true; text: string; title: string | null; format: "html" | "pdf"; status: number; finalUrl: string } | { ok: false; reason: string };
+
+/** HTML is reduced to text here; a PDF is converted to plain text by Cloudflare's Markdown Conversion (no AI model is used for PDFs). */
+async function readPage(url: string, fetcher: typeof fetch, ai?: Ai): Promise<PageRead> {
   try {
-    const res = await fetcher(url, { headers: { "user-agent": UA }, redirect: "follow", signal: AbortSignal.timeout(15_000) });
+    const res = await fetcher(url, { headers: { "user-agent": UA }, redirect: "follow", signal: AbortSignal.timeout(10_000) });
     const type = res.headers.get("content-type") ?? "";
+    const finalUrl = res.url || url;
     if (!res.ok) return await res.body?.cancel(), { ok: false, reason: `HTTP ${res.status}` };
-    if (type.includes("pdf")) return await res.body?.cancel(), { ok: false, reason: "PDF (not read automatically yet: open the link)" };
+    if (type.includes("pdf") || (/\.pdf($|\?)/i.test(finalUrl) && type.includes("octet-stream"))) {
+      if (!ai) return await res.body?.cancel(), { ok: false, reason: "PDF (not read automatically here: open the link)" };
+      if (Number(res.headers.get("content-length") ?? 0) > MAX_PDF) return await res.body?.cancel(), { ok: false, reason: "PDF too large to read automatically (open the link)" };
+      const buf = await res.arrayBuffer();
+      if (buf.byteLength > MAX_PDF) return { ok: false, reason: "PDF too large to read automatically (open the link)" };
+      const name = decodeURIComponent(new URL(finalUrl).pathname.split("/").pop() || "call.pdf").slice(0, 120);
+      const out = await ai.toMarkdown({ name, blob: new Blob([buf], { type: "application/pdf" }) });
+      if (out.format === "error" || !("data" in out)) return { ok: false, reason: "PDF could not be converted (open the link)" };
+      // Markdown → plain lines: drop the metadata block and heading marks, keep the words exactly as converted.
+      const body = out.data.includes("## Contents") ? out.data.slice(out.data.indexOf("## Contents") + 11) : out.data;
+      const text = body.replace(/^#{1,6} +/gm, "").replace(/[ \t\r\f\v]+/g, " ").replace(/ ?\n[ \n]*/g, "\n").trim().slice(0, MAX_TEXT);
+      if (text.length < 200) return { ok: false, reason: "PDF has no readable text, probably a scan (open the link)" };
+      return { ok: true, text, title: name.replace(/\.pdf$/i, "").replace(/[_-]+/g, " "), format: "pdf", status: res.status, finalUrl };
+    }
     if (!type.includes("html") && !type.includes("text")) return await res.body?.cancel(), { ok: false, reason: `unsupported content (${type.split(";")[0] || "unknown"})` };
-    return { ok: true, html: (await res.text()).slice(0, MAX_HTML), status: res.status, finalUrl: res.url || url };
+    const html = (await res.text()).slice(0, MAX_HTML);
+    return { ok: true, text: pageText(html), title: pageTitle(html), format: "html", status: res.status, finalUrl };
   } catch (e) {
-    return { ok: false, reason: e instanceof Error && e.name === "TimeoutError" ? "timed out" : "did not respond" };
+    if (!(e instanceof Error && e.name === "TimeoutError")) console.error(JSON.stringify({ job: "discovery_read", host: new URL(url).hostname, error: e instanceof Error ? e.message.slice(0, 300) : "unknown" }));
+    return { ok: false, reason: e instanceof Error && e.name === "TimeoutError" ? "timed out" : "could not be read" };
   }
 }
 
@@ -137,29 +158,37 @@ export async function runDiscovery(env: Env, profile: Profile, countries: Countr
   const { results: allSources } = await db.prepare("SELECT url FROM sources").all<{ url: string }>();
   const allRegistered = [...new Set(allSources.map((s) => hostOf(s.url)))];
 
-  // 1. Candidates: open-web search (if a key is set) first, then the official-source crawl.
-  const candidates: (SearchHit & { provider: string; query: string | null })[] = [];
+  // 1. Candidates. Open-web search and the official-source crawl run at the same time, then take turns
+  //    so neither fills every page slot (registered PDFs used to be crowded out).
   const queries: string[] = [];
-  if (env.TAVILY_API_KEY) {
+  const webTask = (async () => {
+    if (!env.TAVILY_API_KEY) {
+      notes.push("Open-web search isn't connected yet, so only Raasta's registered official sources (and links on them) were read.");
+      return [] as (SearchHit & { provider: string; query: string | null })[];
+    }
     providers.unshift("tavily");
     const search = tavilyProvider(db, env.TAVILY_API_KEY, Math.min(1000, Number(env.SEARCH_MONTHLY_CAP) || 900), fetcher);
-    for (const c of countries) {
-      const domains = [...LISTED_DOMAINS.filter((d) => countryOfHost(d) === c), ...allRegistered.filter((h) => countryOfHost(h) === c), ...(c === "CN" ? ["edu.cn"] : [])];
-      for (const q of buildQueries(profile, c).slice(0, 2)) {
-        queries.push(q);
-        try {
-          for (const h of await search.search(q, [...new Set(domains)])) candidates.push({ ...h, provider: "tavily", query: q });
-        } catch (e) {
-          notes.push(e instanceof QuotaError ? "Open-web search paused: this month's free search quota is used up. Showing official-source results only." : "Open-web search failed this time. Showing official-source results only.");
-          break;
-        }
-      }
-    }
-  } else notes.push("Open-web search isn't connected yet, so only Raasta's registered official sources (and links on them) were read.");
-  const picked = sources.filter((s) => countries.includes(s.country as Country)).slice(0, 4);
-  const crawl = await crawlCandidates(picked, fetcher);
+    const jobs = countries.flatMap((c) => {
+      const domains = [...new Set([...LISTED_DOMAINS.filter((d) => countryOfHost(d) === c), ...allRegistered.filter((h) => countryOfHost(h) === c), ...(c === "CN" ? ["edu.cn"] : [])])];
+      return buildQueries(profile, c).slice(0, 2).map((q) => ({ q, domains }));
+    });
+    queries.push(...jobs.map((j) => j.q));
+    const out = await Promise.allSettled(jobs.map((j) => search.search(j.q, j.domains).then((hits) => hits.map((h) => ({ ...h, provider: "tavily", query: j.q })))));
+    const failed = out.filter((o) => o.status === "rejected") as PromiseRejectedResult[];
+    if (failed.some((f) => f.reason instanceof QuotaError)) notes.push("Open-web search paused: this month's free search quota is used up. Showing official-source results only.");
+    else if (failed.length) notes.push("Open-web search failed for some queries this time.");
+    return out.flatMap((o) => (o.status === "fulfilled" ? o.value : []));
+  })();
+  const countrySources = sources.filter((s) => countries.includes(s.country as Country));
+  const picked = countrySources.map((s) => ({ s, k: Math.random() })).sort((x, y) => x.k - y.k).slice(0, 4).map((x) => x.s); // rotate through the registry
+  const [web, crawl] = await Promise.all([webTask, crawlCandidates(picked, fetcher)]);
   notes.push(...crawl.notes);
-  candidates.push(...crawl.hits.map((h) => ({ ...h, provider: "official-crawl", query: null })));
+  const crawlHits = crawl.hits.map((h) => ({ ...h, provider: "official-crawl", query: null as string | null }));
+  const candidates: (SearchHit & { provider: string; query: string | null })[] = [];
+  for (let i = 0; i < Math.max(web.length, crawlHits.length); i++) {
+    if (crawlHits[i]) candidates.push(crawlHits[i]);
+    if (web[i]) candidates.push(web[i]);
+  }
 
   // 2. Official-domain gate + dedupe.
   const seen = new Set<string>();
@@ -187,13 +216,14 @@ export async function runDiscovery(env: Env, profile: Profile, countries: Countr
   const t = now();
   await Promise.all(
     toFetch.map(async (g) => {
-      const page = await readPage(g.url, fetcher);
+      const page = await readPage(g.url, fetcher, env.AI);
       if (!page.ok) return void notes.push(`${hostOf(g.url)}: ${page.reason}.`);
       // Redirects are followed, so the page we actually read must also be on an official host.
       if (page.finalUrl !== g.url && !classifyHost(page.finalUrl, allRegistered)) return void notes.push(`${hostOf(g.url)}: skipped (redirected to a non-official site).`);
-      const text = pageText(page.html);
+      const text = page.text;
       const hc = countryOfHost(hostOf(g.url));
       const x = extractPage(text, { dayFirst: hc === "IT" || hc === "DE" || hc === "PK" });
+      x.sourceFormat = page.format;
       if (unverifiableQuotes(x, text).length) return void notes.push(`${hostOf(g.url)}: skipped (quote check failed).`);
       if (!useful(x)) return;
       const cat = catalogue.find((s) => s.official_url.split("#")[0] === g.url) ?? null;
@@ -205,7 +235,7 @@ export async function runDiscovery(env: Env, profile: Profile, countries: Countr
       const changed = !!prev && prev.content_hash !== hash;
       const state = !prev || changed ? (conflicts.length ? "CONFLICTING" : "NEEDS_REVIEW") : prev.review_state;
       const row: DiscoveryRow = {
-        id, url: g.url, host: hostOf(g.url), host_tier: g.tier!, country: countryOfHost(hostOf(g.url)), title: pageTitle(page.html) ?? g.title, kind: x.kind,
+        id, url: g.url, host: hostOf(g.url), host_tier: g.tier!, country: countryOfHost(hostOf(g.url)), title: (page.format === "pdf" ? g.title : null) ?? page.title ?? g.title, kind: x.kind,
         provider: g.provider, fetched_at: t, extract: JSON.stringify(x), conflicts: JSON.stringify(conflicts), review_state: state,
         review_note: changed && prev?.review_state === "REVIEWER_CONFIRMED" ? `Page changed on ${t.slice(0, 10)} after review. Needs a new check.` : (prev?.review_note ?? null),
         reviewed_at: changed ? null : (prev?.reviewed_at ?? null), content_hash: hash,
@@ -236,6 +266,12 @@ export async function runDiscovery(env: Env, profile: Profile, countries: Countr
   const found = keep
     .map((u) => stored.find((r) => r.url === u))
     .filter((r): r is DiscoveryRow => !!r && r.review_state !== "REJECTED" && useful(JSON.parse(r.extract)));
+  // Text a reviewer pasted from pages that block automated reading (e.g. campuschina.org) is shown for its country.
+  const { results: pasted } = await db
+    .prepare(`SELECT * FROM discoveries WHERE provider = 'manual' AND review_state != 'REJECTED' AND country IN (${countries.map(() => "?").join(",")}) ORDER BY updated_at DESC LIMIT 5`)
+    .bind(...countries)
+    .all<DiscoveryRow>();
+  for (const r of pasted) if (!found.some((f) => f.id === r.id)) found.push(r);
   const runId = newId();
   await db.prepare("INSERT INTO discovery_runs (id, user_id, profile, providers, queries, discovery_ids, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
     .bind(runId, userId, JSON.stringify(profile), JSON.stringify(providers), JSON.stringify(queries), JSON.stringify(found.map((f) => f.id)), JSON.stringify(notes), t)
@@ -251,7 +287,7 @@ function present(r: DiscoveryRow, profile: Profile, detail = false) {
   const evaluation = evaluateDiscovery(x, profile, today(), { state: r.review_state, conflicts });
   const base = {
     id: r.id, url: r.url, host: r.host, hostTier: r.host_tier, country: r.country, title: r.title ?? r.host, kind: r.kind, provider: r.provider,
-    fetchedAt: r.fetched_at, reviewState: r.review_state, reviewedAt: r.reviewed_at, conflicts, evaluation,
+    fetchedAt: r.fetched_at, sourceFormat: x.sourceFormat ?? "html", reviewState: r.review_state, reviewedAt: r.reviewed_at, conflicts, evaluation,
   };
   if (!detail) return base;
   return {
@@ -370,6 +406,46 @@ admin.get("/discoveries", async (c) => {
     .bind(...(state ? [state] : []))
     .all<DiscoveryRow>();
   return c.json({ discoveries: results.map((r) => ({ ...r, extract: JSON.parse(r.extract), conflicts: JSON.parse(r.conflicts) })) });
+});
+
+// Evidence pasted by a reviewer from an official page that blocks automated reading. Same rules as fetched pages:
+// official host only, every quote comes from this exact text, and it starts as NEEDS_REVIEW (or CONFLICTING).
+admin.post("/discoveries/manual", async (c) => {
+  const b = z.object({
+    url: z.url().max(600),
+    title: z.string().trim().min(3).max(200),
+    text: z.string().min(200, "Paste at least a few paragraphs of the official page.").max(100_000),
+  }).parse(await c.req.json());
+  const db = c.env.DB;
+  const actor = c.get("user")!;
+  const { results: srcs } = await db.prepare("SELECT url FROM sources").all<{ url: string }>();
+  const url = b.url.split("#")[0];
+  const tier = classifyHost(url, [...new Set(srcs.map((s) => hostOf(s.url)))]);
+  if (!tier) return c.json({ error: "That address isn't an official source Raasta recognises. Paste text only from official university, government or scholarship-provider pages." }, 400);
+  const text = b.text.replace(/\r\n?/g, "\n").replace(/[ \t\f\v]+/g, " ").replace(/ ?\n[ \n]*/g, "\n").trim();
+  const host = hostOf(url);
+  const hc = countryOfHost(host);
+  const x = extractPage(text, { dayFirst: hc === "IT" || hc === "DE" || hc === "PK" });
+  x.sourceFormat = "pasted";
+  if (unverifiableQuotes(x, text).length) return c.json({ error: "Could not check the quotes in this text." }, 400);
+  if (!useful(x)) return c.json({ error: "No level, date, fee or document list was found in this text. Paste the part of the page with the call details." }, 400);
+  const conflicts = findConflicts(x);
+  const t = now();
+  const id = newId();
+  const note = `Text pasted by ${actor.name} from the official page on ${t.slice(0, 10)}.`;
+  await db
+    .prepare(
+      `INSERT INTO discoveries (id, url, host, host_tier, country, title, kind, provider, query, content_hash, fetched_at, http_status, extract, conflicts, review_state, review_note, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'manual', NULL, ?, ?, NULL, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(url) DO UPDATE SET title = excluded.title, kind = excluded.kind, provider = 'manual', content_hash = excluded.content_hash, fetched_at = excluded.fetched_at,
+         extract = excluded.extract, conflicts = excluded.conflicts, review_state = excluded.review_state, review_note = excluded.review_note,
+         reviewed_by = NULL, reviewed_at = NULL, updated_at = excluded.updated_at`,
+    )
+    .bind(id, url, host, tier, hc, b.title, x.kind, await sha256Hex(text), t, JSON.stringify(x), JSON.stringify(conflicts), conflicts.length ? "CONFLICTING" : "NEEDS_REVIEW", note, t, t)
+    .run();
+  const row = await db.prepare("SELECT id FROM discoveries WHERE url = ?").bind(url).first<{ id: string }>();
+  await audit(db, actor.id, "discovery_pasted", "discovery", row!.id, { url, chars: text.length });
+  return c.json({ id: row!.id, found: { levels: x.levels.length, deadlines: x.deadlines.length, fees: x.fees.length, documents: x.documents.length } }, 201);
 });
 
 admin.post("/discoveries/:id/review", async (c) => {

@@ -1,5 +1,7 @@
 export interface Env {
   DB: D1Database;
+  /** Workers AI binding, used only for PDF-to-text conversion (free plan; fails rather than bills when the allowance runs out). */
+  AI?: Ai;
   ASSETS?: Fetcher;
   APP_ENV: string;
   PAYMENTS_ENABLED: string;

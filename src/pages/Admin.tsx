@@ -98,6 +98,7 @@ function Discoveries() {
   return (
     <div className="stack">
       <Notice kind="info">Found automatically on official domains. Open each page and check every quote before confirming. Confirming does not add the page to the catalogue; it tells students a person checked it. A page that changes later returns here automatically.</Notice>
+      <PasteEvidence onDone={reload} />
       <div className="seg" role="group" aria-label="Filter">{["", "NEEDS_REVIEW", "CONFLICTING", "REVIEWER_CONFIRMED", "REJECTED"].map((s) => <button key={s} aria-pressed={state === s} onClick={() => setState(s)}>{s ? s.replace("_", " ").toLowerCase() : "all"}</button>)}</div>
       {!data ? <Skeleton h={200} /> : (
         <div className="panel panel-flush">
@@ -129,6 +130,47 @@ function Discoveries() {
             </details>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+// For official pages that block automated reading (e.g. campuschina.org): open the page yourself, copy the call text, paste it here.
+function PasteEvidence({ onDone }: { onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState("");
+  const [title, setTitle] = useState("");
+  const [text, setText] = useState("");
+  const [msg, setMsg] = useState<{ kind: "ok" | "bad"; text: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await api.post("/admin/discoveries/manual", { url: url.trim(), title: title.trim(), text });
+      setMsg({ kind: "ok", text: `Saved for review. Found: ${r.found.levels} level(s), ${r.found.deadlines} deadline(s), ${r.found.fees} fee(s), ${r.found.documents} document(s). Check the quotes below, then confirm.` });
+      setUrl("");
+      setTitle("");
+      setText("");
+      onDone();
+    } catch (e: any) {
+      setMsg({ kind: "bad", text: e.message });
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="panel stack" style={{ "--gap": "12px" } as any}>
+      <div className="row between"><h3>Add evidence by pasting</h3><button className="btn btn-ghost btn-sm" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{open ? "Close" : "Open"}</button></div>
+      {open && (
+        <>
+          <p className="tiny">For official pages that block automated reading (for example campuschina.org and csc.edu.cn). Open the page in your own browser, copy the call text (dates, levels, English, documents, fees), and paste it here. Raasta quotes only from what you paste and labels it "pasted by a Raasta reviewer".</p>
+          <label className="field"><span>Official page address</span><input className="input" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://www.campuschina.org/content/..." /></label>
+          <label className="field"><span>Page title</span><input className="input" value={title} maxLength={200} onChange={(e) => setTitle(e.target.value)} placeholder="Chinese Government Scholarship - Bilateral Program 2027" /></label>
+          <label className="field"><span>Text copied from the page</span><textarea className="input" style={{ height: 180, padding: 12 }} value={text} onChange={(e) => setText(e.target.value)} /></label>
+          <button className="btn btn-primary" style={{ alignSelf: "flex-start" }} disabled={busy || !url || title.trim().length < 3 || text.length < 200} onClick={submit}>{busy ? "Reading…" : "Save as evidence"}</button>
+          {msg && <Notice kind={msg.kind}>{msg.text}</Notice>}
+        </>
       )}
     </div>
   );

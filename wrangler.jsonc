@@ -18,6 +18,9 @@
       "migrations_dir": "migrations"
     }
   ],
+  // Workers AI, used only to convert official PDF calls to text for discovery (Markdown Conversion). Free plan:
+  // usage beyond the daily allowance fails with an error instead of being billed. AI_ENABLED stays false (no LLM features).
+  "ai": { "binding": "AI" },
   "vars": {
     "APP_ENV": "production",
     "PAYMENTS_ENABLED": "false",

@@ -25,6 +25,7 @@ const ENGLISH: Record<string, string> = {
   NOT_STATED: "Not stated on this page",
   UNKNOWN_OR_CONFLICTING: "Unclear or conflicting",
 };
+const HOW: Record<string, string> = { html: "read", pdf: "official PDF read", pasted: "text pasted by a Raasta reviewer" };
 const TIER: Record<string, string> = { registered: "Registered official source", listed: "Official domain", pattern: "University-style domain (reviewer checks)" };
 const fmtMoney = (n: number, c: string) => `${c} ${n.toLocaleString("en-GB", { maximumFractionDigits: 2 })}`;
 const UNIT: Record<string, string> = { once: "one-time", year: "/ year", semester: "/ semester", month: "/ month", unknown: "(frequency not stated)" };
@@ -161,7 +162,7 @@ function ResultCard({ item }: { item: any }) {
         <div className="stack" style={{ "--gap": "4px" } as any}>
           <h3 style={{ fontFamily: "var(--serif)", fontSize: 20 }}>{item.title}</h3>
           <a className="tiny row" style={{ "--gap": "5px" } as any} href={item.url} target="_blank" rel="noopener noreferrer nofollow">{item.host}<ExternalLink size={12} /></a>
-          <span className="tiny">{TIER[item.hostTier]} · read {fmtDate(item.fetchedAt)}</span>
+          <span className="tiny">{TIER[item.hostTier]} · {HOW[item.sourceFormat] ?? "read"} {fmtDate(item.fetchedAt)}</span>
         </div>
         {item.country && COUNTRY[item.country] && <span className={`flag flag-${item.country}`}>{item.country}</span>}
       </div>
@@ -221,7 +222,7 @@ function Detail({ id }: { id: string }) {
 
   return (
     <div className="stack" style={{ "--gap": "18px", borderTop: "1px solid var(--line)", paddingTop: 16 } as any}>
-      <Notice kind="warn">{ev.verification.reason} Raasta read this page on {fmtDate(it.fetchedAt)}; it may have changed since.</Notice>
+      <Notice kind="warn">{ev.verification.reason} {it.sourceFormat === "pdf" ? "Raasta read this official PDF (converted to text) on" : it.sourceFormat === "pasted" ? "A Raasta reviewer copied this text from the official page on" : "Raasta read this page on"} {fmtDate(it.fetchedAt)}; it may have changed since.</Notice>
       {it.conflicts.length > 0 && (
         <Block title="Conflicts to check" icon={<ListChecks size={15} />}>
           {it.conflicts.map((c: any, i: number) => <div key={i} className="stack" style={{ "--gap": "6px" } as any}><span className="tiny">{c.detail}</span>{c.quotes.map((q: string, j: number) => <Quote key={j}>{q}</Quote>)}</div>)}

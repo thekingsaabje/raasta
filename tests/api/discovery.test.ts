@@ -31,6 +31,7 @@ const fetchStub = vi.fn(async (input: any, init?: any) => {
     return new Response(JSON.stringify({ results: [{ url: "https://www.polimi.it/en/scholarships/merit", title: "Merit" }, { url: "https://agent-example.com/apply", title: "Agent" }] }), { headers: { "content-type": "application/json" } });
   }
   if (url.includes("open.er-api.com")) return new Response(JSON.stringify({ result: "error" }));
+  if (url.endsWith(".pdf")) return new Response(new Uint8Array([37, 80, 68, 70]), { headers: { "content-type": "application/pdf" } });
   if (url === "https://www.boell.de/en/moved") {
     const res = new Response(PAGES["https://agent-example.com/apply"], { headers: { "content-type": "text/html" } });
     Object.defineProperty(res, "url", { value: "https://agent-example.com/apply" }); // official link that redirects to an agent
@@ -189,5 +190,74 @@ describe("discovery API", () => {
     await s.register("h@test.local");
     for (let i = 0; i < 5; i++) expect((await s.post("/me/discover", { profile: PROFILE, countries: ["DE"] })).status).toBe(200);
     expect((await s.post("/me/discover", { profile: PROFILE, countries: ["DE"] })).status).toBe(429);
+  });
+});
+
+// Stand-in for Cloudflare's PDF-to-text converter (the real one runs on Cloudflare; tests never call it).
+const PDF_TEXT = "Merit scholarships for international students\nCall for applications for Master of Science programmes 2027/28.\nApplications must be submitted by 15 December 2026 at 14:00 (Italian time).\nTuition fee: € 3,900 per year.\nRequired documents: transcript of records, CV, motivation letter.";
+const fakeAi = (text: string) => ({ toMarkdown: async (doc: any) => ({ id: "1", name: doc.name, mimeType: "application/pdf", format: "text", tokens: 0, data: text }) }) as any;
+
+describe("PDF calls and pasted evidence", () => {
+  async function pdfSetup(ai?: any) {
+    const env = makeEnv(ai ? { AI: ai } : {});
+    await env.DB.prepare("INSERT INTO sources (id, name, country, category, url) VALUES ('polimi','Polimi','IT','university','https://www.polimi.it/call/Merit_Call_2027.pdf')").run();
+    return env;
+  }
+
+  it("reads an official PDF through the converter, quotes it verbatim and labels it as a PDF", async () => {
+    const env = await pdfSetup(fakeAi(PDF_TEXT));
+    const s = client(env);
+    await s.register("pdf@test.local");
+    const r = await s.post("/me/discover", { profile: { ...PROFILE, targetCountries: ["IT"] }, countries: ["IT"] });
+    const item = r.json.items.find((i: any) => i.url.endsWith(".pdf"));
+    expect(item.sourceFormat).toBe("pdf");
+    expect(item.evaluation.cycle.deadline).toMatchObject({ date: "2026-12-15", time: "14:00" });
+    expect(item.evaluation.cycle.pakistanTime).toBe("2026-12-15 18:00 PKT");
+    const d = (await s.get(`/me/discoveries/${item.id}`)).json.discovery;
+    for (const q of [d.extract.deadlines[0].quote, ...d.extract.documents.map((x: any) => x.quote)]) expect(PDF_TEXT).toContain(q);
+  });
+
+  it("without the converter, or for a scanned PDF, says so instead of guessing", async () => {
+    const a = client(await pdfSetup());
+    await a.register("nopdf@test.local");
+    const r1 = await a.post("/me/discover", { profile: PROFILE, countries: ["IT"] });
+    expect(r1.json.items).toEqual([]);
+    expect(r1.json.notes.join(" ")).toMatch(/PDF \(not read automatically here/);
+    const b = client(await pdfSetup(fakeAi("Page 1")));
+    await b.register("scan@test.local");
+    const r2 = await b.post("/me/discover", { profile: PROFILE, countries: ["IT"] });
+    expect(r2.json.notes.join(" ")).toMatch(/no readable text, probably a scan/);
+  });
+
+  const CAMPUS = "Chinese Government Scholarship - Bilateral Program\nApplicants for master's degree programmes must hold a bachelor's degree.\nThe application deadline for applicants from Pakistan is 31 March 2027 (Beijing time 17:00).\nRequired: passport, transcripts, degree certificate, study plan, two recommendation letters, Foreigner Physical Examination Form.\nMonthly stipend: CNY 3,000 per month for master's students.";
+
+  it("only admins paste; official hosts only; pasted text becomes reviewable evidence shown in China searches", async () => {
+    const env = await setup();
+    const s = client(env);
+    await s.register("cn@test.local");
+    expect((await s.post("/admin/discoveries/manual", { url: "https://www.campuschina.org/x", title: "CGS", text: CAMPUS })).status).toBe(403);
+    const a = client(env);
+    await a.register("admin@test.local", "Admin");
+    expect((await a.post("/admin/discoveries/manual", { url: "https://cucas-agent.example.com/x", title: "Agent", text: CAMPUS })).status).toBe(400);
+    expect((await a.post("/admin/discoveries/manual", { url: "https://www.campuschina.org/x", title: "CGS", text: "too short" })).status).toBe(400);
+    const r = await a.post("/admin/discoveries/manual", { url: "https://www.campuschina.org/content/cgs-2027.html", title: "CGS Bilateral 2027", text: CAMPUS });
+    expect(r.status).toBe(201);
+    expect(r.json.found).toMatchObject({ deadlines: 1 });
+    const row = (await a.get("/admin/discoveries")).json.discoveries.find((d: any) => d.id === r.json.id);
+    expect(row).toMatchObject({ provider: "manual", review_state: "NEEDS_REVIEW", host_tier: "listed", country: "CN" });
+    expect(row.review_note).toMatch(/Text pasted by Admin/);
+
+    const found = await s.post("/me/discover", { profile: { ...PROFILE, targetCountries: ["CN"] }, countries: ["CN"] });
+    const item = found.json.items.find((i: any) => i.id === r.json.id);
+    expect(item.sourceFormat).toBe("pasted");
+    expect(item.evaluation.verification.value).toBe("NOT_VERIFIED");
+    expect(item.evaluation.cycle.deadline).toMatchObject({ date: "2027-03-31", time: "17:00" });
+    expect(item.evaluation.cycle.pakistanTime).toBe("2027-03-31 14:00 PKT");
+
+    // Confirmed, then re-pasted with new text → back to review.
+    await a.post(`/admin/discoveries/${r.json.id}/review`, { decision: "REVIEWER_CONFIRMED", note: "Checked against campuschina.org today." });
+    await a.post("/admin/discoveries/manual", { url: "https://www.campuschina.org/content/cgs-2027.html", title: "CGS Bilateral 2027", text: CAMPUS.replace("31 March", "15 April") });
+    const again = (await a.get("/admin/discoveries")).json.discoveries.find((d: any) => d.id === r.json.id);
+    expect(again.review_state).toBe("NEEDS_REVIEW");
   });
 });
