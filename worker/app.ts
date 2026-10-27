@@ -13,6 +13,7 @@ import { capabilities, checkDocument, coachingQuestions, DOC_KINDS, outlineFromF
 import { APPLICATION_STAGES, FUNDING_CLASSES, OPPORTUNITY_STATUSES, STUDENT_STATUSES, VERIFIED_STATUSES, WRITING_MODES, type Scholarship } from "../shared/types";
 import { runSourceChecks } from "./monitor";
 import { plannerRoutes } from "./planner";
+import { routeRoutes } from "./route";
 
 export const app = new Hono<AppEnv>().basePath("/api");
 
@@ -803,5 +804,6 @@ admin.get("/audit", async (c) => c.json({ audit: (await c.env.DB.prepare("SELECT
 app.route("/admin", admin);
 
 app.route("/", plannerRoutes);
+app.route("/", routeRoutes);
 
 app.all("*", (c) => c.json({ error: "Not found." }, 404));

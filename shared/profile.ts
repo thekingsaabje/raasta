@@ -11,7 +11,11 @@ export const profileSchema = z
     nationality: z.string().length(2).toUpperCase().optional(),
     residence: z.string().max(60).optional(),
     birthDate: z.iso.date().optional(),
-    journey: z.enum(["applying_from_pakistan", "studying_in_china", "studying_in_germany_italy"]).optional(),
+    journey: z.enum(["applying_from_pakistan", "studying_in_china", "studying_in_germany_italy", "holds_scholarship"]).optional(),
+    /** Where a student already abroad is studying (used by the 'holds_scholarship' journey). */
+    currentCountry: z.enum(["CN", "DE", "IT"]).optional(),
+    /** Needs to renew an existing award (annual review) rather than find a new one. */
+    needsRenewal: z.boolean().optional(),
     highestCompleted: level.optional(),
     currentUniversity: z.string().max(160).optional(),
     currentYear: z.number().int().min(1).max(8).optional(),

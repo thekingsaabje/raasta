@@ -135,7 +135,7 @@ const SCHOL = [
   ["confirmed", "I already hold a confirmed award"],
 ] as const;
 
-function Q({ title, help, children }: { title: string; help?: ReactNode; children: ReactNode }) {
+export function Q({ title, help, children }: { title: string; help?: ReactNode; children: ReactNode }) {
   return (
     <div className="stack" style={{ "--gap": "16px" } as any}>
       <div>
@@ -147,7 +147,7 @@ function Q({ title, help, children }: { title: string; help?: ReactNode; childre
   );
 }
 
-function Choices<T extends string>({ value, options, onPick, label }: { value?: T; options: readonly (readonly [T, string])[]; onPick: (v: T) => void; label: string }) {
+export function Choices<T extends string>({ value, options, onPick, label }: { value?: T; options: readonly (readonly [T, string])[]; onPick: (v: T) => void; label: string }) {
   return (
     <div className="choice-grid" role="radiogroup" aria-label={label}>
       {options.map(([v, l]) => (
