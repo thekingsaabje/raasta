@@ -8,11 +8,11 @@
 - [ ] Later: domain purchase; payment provider that supports a Pakistan business + PKR.
 
 ## Live discovery (session 6)
-- [ ] Founder: approve deploy (backup → rehearse 0005 → migrate remote → deploy → live e2e → delete e2e users).
-- [ ] Founder: create a Tavily free account and set the key with `npx.cmd wrangler secret put TAVILY_API_KEY` (confirm the free plan on tavily.com first).
+- [x] Deployed 2026-10-27 (backup, rehearsal, migration, live e2e 2/2, e2e users deleted).
+- [x] Tavily key set as a Worker secret (2026-10-27).
 - [ ] Founder: review results in Admin → Discoveries; review `LISTED_DOMAINS` in shared/discovery.ts.
 - [ ] Read PDF calls (Workers AI Markdown Conversion, free tier; needs the AI binding approved).
-- [ ] Check CPU time of the first live discovery on the Workers Free plan.
+- [ ] CPU per search is 52–64 ms live (free guideline 10 ms). If searches start failing: lower MAX_PAGES/MAX_HTML, or approve Workers Paid ($5/month).
 - [ ] Local only: reset `test-cn-master` to NEEDS_REVIEW in local D1 (4 local e2e tests expect it).
 
 ## Data

@@ -1,6 +1,7 @@
 # Raasta: session 6 report, live discovery (2026-10-27)
 
-**Status: built and tested locally on `dev`. NOT deployed, and production is unchanged** (migration 0005 has not been applied remotely).
+**Status: LIVE since 2026-10-27** (version `caf93f89`). Production was backed up (`backups/raasta-db-pre-discovery-2026-10-27.sql`), migration 0005 was rehearsed on a copy, then applied.
+The Tavily key is set as a Worker secret (open-web search is on), with 8 of 900 searches used so far this month.
 
 ## What works now
 - **Dashboard → Discover** (`/app/discover`, signed-in only). The student picks countries, a level and a field (prefilled from their profile),
@@ -28,7 +29,7 @@
   (hard stop reserved before each call), with search results cached for 7 days.
 
 ## Tests actually run
-- `npm test`: **129/129** (97 earlier + 25 discovery unit + 7 discovery API). Covers profile matching, evidence (quotes must be verbatim;
+- `npm test`: **130/130** (97 earlier + 25 discovery unit + 8 discovery API). Covers profile matching, evidence (quotes must be verbatim;
   non-official domains dropped), unknown deadlines, conflicts (2 dates, MOI accepted vs rejected, page vs catalogue, rounds not conflicts),
   all six English states, fee totals, document checklist, timeline, save-to-roadmap idempotency, admin-only review, page changes after review,
   the Tavily quota stop, the cache, the search key never appearing in responses, and official links that redirect to non-official sites being skipped.
@@ -38,10 +39,16 @@
 - Full local Playwright: 24 passed, 4 failed. All 4 failures are caused by local data: the local `[TEST]` record was set to VERIFIED_OPEN in an earlier
   local admin test, which hides the TEST banner and changes catalogue order. No catalogue or scholarship-detail code changed this session.
 
-## Needs provider credentials
-- Open-web search needs a **Tavily account created by the founder** (free plan, no card per third-party pages dated Jul–Sep 2026:
-  1,000 credits/month; confirm on tavily.com). Then run `npx.cmd wrangler secret put TAVILY_API_KEY` (never paste the key in chat).
-  Without it, the page says plainly that only registered official sources are read.
+## Live run (2026-10-27)
+- `discover.spec.ts` against the live site: **2/2** (desktop + mobile) after one fix. The first live run found a real bug: two students
+  searching the same page at the same moment, where the second one got an id that was never saved ("Not found"). Fixed (read back stored rows;
+  the upsert keeps an unchanged page's review), with an API test that fails on the old code.
+- CPU per search: **52–64 ms** (wall 3–9 s); opening/saving results: 1–5 ms. All requests completed (`outcome: ok`), but this is above
+  the Workers Free 10 ms guideline, so heavy use may get searches cut off. Options: fewer pages per search, or Workers Paid ($5/month, needs approval).
+- Cleanup: 4 e2e users deleted (founder is the only user). 5 discovered official pages remain in Admin → Discoveries (NEEDS_REVIEW).
+
+## Provider credentials
+- Tavily key: set by the founder in the git-ignored `.dev.vars`, uploaded as a Worker secret by piping from that file (never printed). One test search worked.
 
 ## Needs human review
 - Every discovery starts as NEEDS_REVIEW (or CONFLICTING). Only Admin → Discoveries changes that.
@@ -56,10 +63,7 @@
 - Table layouts (e.g. ER.GO) give "other dates", not deadlines.
 - Workers Free CPU: a cold first call took 17 ms locally. The deployed CPU time must be checked on the first live run.
 
-## To deploy (after your OK)
-Back up production D1 → rehearse migration 0005 on a local copy → `npm.cmd run db:migrate:remote` → `npm.cmd run deploy` →
-run `discover.spec.ts` live → delete the e2e users.
-Note: live sign-ups are limited to 20 per IP per hour. The discover test adds 2, so the full live suite may need to be split across two hours.
+Note for future live runs: sign-ups are limited to 20 per IP per hour. The discover test adds 2, so the full live suite may need to be split across two hours.
 
 ---
 

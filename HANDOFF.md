@@ -29,8 +29,9 @@ Monitor never changes a scholarship status; change → one `source_changed` task
 - Sign-up without `next` lands on `/route`; `?next=/route` returns there and finishes a pending save.
 - Session-5 tests: 97 Vitest, 26/26 Playwright live (desktop + mobile). See REPORT.md.
 
-## Live discovery (session 6, on `dev`, NOT deployed yet)
-- `/app/discover`. Logic: `shared/discovery.ts` (deterministic, no LLM). API: `worker/discovery.ts`. Migration: `0005_discovery.sql` (applied locally only).
+## Live discovery (session 6, LIVE since 2026-10-27)
+- `/app/discover`. Logic: `shared/discovery.ts` (deterministic, no LLM). API: `worker/discovery.ts`. Migration `0005_discovery.sql` applied live (backup: `backups/raasta-db-pre-discovery-2026-10-27.sql`).
+- `TAVILY_API_KEY` is set as a Worker secret (the founder's free account; the key is also in the git-ignored `.dev.vars`). CPU per search on the live site is 52–64 ms (above the 10 ms free guideline, but it completes).
 - Providers: the official-source crawl (always) + Tavily (only if the `TAVILY_API_KEY` secret is set; cap `SEARCH_MONTHLY_CAP`, default 900).
 - Discoveries are evidence only: NEEDS_REVIEW → Admin → Discoveries. Changed pages return to review. Details in REPORT.md and DISCOVERY_PLAN.md.
 

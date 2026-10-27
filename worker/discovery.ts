@@ -216,20 +216,30 @@ export async function runDiscovery(env: Env, profile: Profile, countries: Countr
           `INSERT INTO discoveries (id, url, host, host_tier, country, title, kind, provider, query, content_hash, fetched_at, http_status, extract, conflicts, review_state, review_note, reviewed_at, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(url) DO UPDATE SET title = excluded.title, kind = excluded.kind, content_hash = excluded.content_hash, fetched_at = excluded.fetched_at,
-             http_status = excluded.http_status, extract = excluded.extract, conflicts = excluded.conflicts, review_state = excluded.review_state,
-             review_note = excluded.review_note, reviewed_at = excluded.reviewed_at, updated_at = excluded.updated_at`,
+             http_status = excluded.http_status, extract = excluded.extract, conflicts = excluded.conflicts,
+             -- Race-safe: an unchanged page keeps its review even if another search wrote it first.
+             review_state = CASE WHEN discoveries.content_hash = excluded.content_hash THEN discoveries.review_state ELSE excluded.review_state END,
+             review_note = CASE WHEN discoveries.content_hash = excluded.content_hash THEN discoveries.review_note ELSE excluded.review_note END,
+             reviewed_at = CASE WHEN discoveries.content_hash = excluded.content_hash THEN discoveries.reviewed_at ELSE excluded.reviewed_at END,
+             updated_at = excluded.updated_at`,
         ).bind(id, row.url, row.host, row.host_tier, row.country, row.title, row.kind, row.provider, g.query, hash, t, page.status, row.extract, row.conflicts, state, row.review_note, row.reviewed_at, t, t),
       );
     }),
   );
 
-  const found = gated.map((g) => byUrl.get(g.url)).filter((r): r is DiscoveryRow => !!r && r.review_state !== "REJECTED" && useful(JSON.parse(r.extract)));
+  if (writes.length) await db.batch(writes);
+  // Read back what is stored: a parallel search of the same page may have saved it first (its id and review win).
+  const keep = gated.map((g) => g.url).filter((u) => byUrl.has(u));
+  const stored = keep.length
+    ? (await db.prepare(`SELECT * FROM discoveries WHERE url IN (${keep.map(() => "?").join(",")})`).bind(...keep).all<DiscoveryRow>()).results
+    : [];
+  const found = keep
+    .map((u) => stored.find((r) => r.url === u))
+    .filter((r): r is DiscoveryRow => !!r && r.review_state !== "REJECTED" && useful(JSON.parse(r.extract)));
   const runId = newId();
-  writes.push(
-    db.prepare("INSERT INTO discovery_runs (id, user_id, profile, providers, queries, discovery_ids, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(runId, userId, JSON.stringify(profile), JSON.stringify(providers), JSON.stringify(queries), JSON.stringify(found.map((f) => f.id)), JSON.stringify(notes), t),
-  );
-  await db.batch(writes);
+  await db.prepare("INSERT INTO discovery_runs (id, user_id, profile, providers, queries, discovery_ids, notes, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+    .bind(runId, userId, JSON.stringify(profile), JSON.stringify(providers), JSON.stringify(queries), JSON.stringify(found.map((f) => f.id)), JSON.stringify(notes), t)
+    .run();
   return { runId, providers, queries, notes, items: found.map((r) => present(r, profile)), createdAt: t };
 }
 

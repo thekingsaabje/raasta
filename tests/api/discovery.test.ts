@@ -172,6 +172,17 @@ describe("discovery API", () => {
     expect(r.json.notes.join(" ")).toMatch(/redirected to a non-official site/);
   });
 
+  it("two students searching the same pages at the same time both get working results", async () => {
+    const env = await setup();
+    const [a, b] = [client(env), client(env)];
+    await a.register("p1@test.local");
+    await b.register("p2@test.local");
+    const [ra, rb] = await Promise.all([a.post("/me/discover", { profile: PROFILE, countries: ["DE"] }), b.post("/me/discover", { profile: PROFILE, countries: ["DE"] })]);
+    expect(rb.json.items.map((i: any) => i.id)).toEqual(ra.json.items.map((i: any) => i.id));
+    for (const it of rb.json.items) expect((await b.get(`/me/discoveries/${it.id}`)).status).toBe(200);
+    expect((await env.DB.prepare("SELECT COUNT(*) AS n FROM discoveries").first<{ n: number }>())!.n).toBe(ra.json.items.length);
+  });
+
   it("per-user daily limit", async () => {
     const env = await setup();
     const s = client(env);
