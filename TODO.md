@@ -1,8 +1,8 @@
 # TODO (priority order)
 
 ## Needs the founder
-- [ ] Review the 18 "auto-checked" records in Admin → Scholarships and confirm them (turns them into reviewer-verified). Start with the open ones: Politecnico di Milano (15 Dec 2026), Tsinghua freshmen (20 Nov 2026), DSU Toscana PhD (16 Nov 2026), Heinrich Böll (15 Jan–1 Mar 2027).
-- [ ] Work through Admin → Review tasks (14 records need human verification).
+- [ ] Confirm records in Admin → Scholarships (all 32 are unverified until you do; "Verified fits" stays empty). Start with the ones that look open: Tsinghua freshmen (20 Nov 2026), DSU Toscana PhD (16 Nov 2026), Politecnico di Milano (15 Dec 2026), Heinrich Böll (15 Jan–1 Mar 2027). Use "Confirm all quoted rules" only after reading each quote against the official page.
+- [ ] Work through Admin → Review tasks (32 `verify_record` tasks).
 - [ ] Decide on an email provider (e.g. Resend free tier) for self-service password reset and email reminders — needs an account (approval).
 - [ ] Optional: move D1 closer to Pakistan (APAC) — requires approving a database delete/recreate or D1 read replication.
 - [ ] Later: domain purchase; payment provider that supports a Pakistan business + PKR.
@@ -19,6 +19,10 @@
 - [ ] Admin: create/edit scholarships and rules in the UI (today: research pipeline + review screens).
 - [ ] Entitlements, orders and refund policy before any paid feature (payments stay off).
 - [ ] Optional AI explanations behind `AI_ENABLED` with a spending cap (needs API key approval).
+
+## Study route follow-ups
+- [ ] Unique index on applications(user_id, scholarship_id) to make the roadmap race-proof (client already guards).
+- [ ] Route results: compare two routes side by side; show proof-of-funds guidance per country.
 
 ## Quality
 - [ ] Automated accessibility audit (axe/Lighthouse) — not run yet; manual keyboard/contrast review only.

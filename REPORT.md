@@ -1,3 +1,103 @@
+# Raasta — session 5 report: study-route journey and verification (2026-10-27)
+
+## Summary
+- The homepage's main button "Find my study route" now opens a step-by-step assessment at `/route`.
+  "Browse scholarships" is the secondary option, and the catalogue preview moved below "how it works".
+- The assessment asks one question at a time and adapts to the answers.
+  - It asks about the student's situation, current studies (only if already abroad), countries, degree and intake, qualification, grades, gap, language, nationality/age and budget.
+  - Back, Skip and editable answer chips work. Progress is kept in the browser and resumes on refresh.
+- The results come from the database and deterministic rules (`shared/route.ts`). No AI and no probabilities are involved.
+  - Each country shows its route, fit counts, a labelled cost estimate and possible barriers.
+  - Each scholarship is placed in one of these groups: Verified fit, Potential fit (preliminary lead), Needs confirmation, Likely not eligible (needs confirmation), Not eligible, or Closed.
+  - Each scholarship shows evidence (rules with quotes and sources), met/missing counts, next actions, "Add to roadmap" and "Plan exact costs".
+- Saving needs an account. After sign-up the student returns to the results, the profile is saved, and a roadmap is created on the dashboard: applications with checklists, plus action tasks. The roadmap is created only once.
+- `/costs` opens straight on its first question.
+  - A banner offers to continue an earlier draft or start fresh.
+  - Drafts started from `/route` skip the questions already answered.
+  - No numbers are shown until there are costs to add up.
+- **Verification policy (founder instruction): AI evidence never verifies a record.**
+  - All 32 real records are now `NEEDS_REVIEW` in production. Research findings are kept separately as `cycle_state`, `proposed_deadline` and `status_reason`.
+  - Students see labels such as "Looks open · not yet verified", "Status unknown" and "Conflicting information".
+  - 0 rules on real records are verified, so an unverified rule can never reject a student.
+  - Every record has a plain-English reason and an open review task.
+- Admin review screen:
+  - It shows the research evidence (what the official page appears to show, the proposed deadline and the reason) and the source link.
+  - It has buttons to confirm open, upcoming or closed, or to mark sources as conflicting. The deadline is prefilled from the proposed one, and a reason is required.
+  - It has a "Confirm all quoted rules" button.
+  - Confirming sets `verification_method='human'` and closes the review task.
+
+## Production changes (in this order)
+1. Backup: `backups/raasta-db-pre-deploy-2026-10-27.sql`.
+2. Rehearsal on a copy of that backup gave: 32 records NEEDS_REVIEW (12 look closed, 5 look open, 1 looks upcoming, 14 unknown), 0 verified rules, 32 open review tasks, 18 history snapshots and 0 records without a reason. A second run changed nothing.
+3. Remote: migration `0004_cycle_state.sql`, then `seed/status-sync.sql`. The production counts matched the rehearsal exactly.
+4. `npm.cmd run deploy`. The live site serves `assets/index-7tJBiEj-.js`, the same file as the build.
+
+## Tests actually run
+- `npm.cmd run typecheck`: clean. `npm.cmd test`: 97/97.
+- Playwright, local: desktop 17/17 (route.spec re-run after the two fixes below) and mobile 9/9.
+- Playwright, live (https://raasta.raasta.workers.dev): 26/26 on desktop and mobile (Pixel 7).
+  - This includes the new `route.spec`: homepage button → adaptive question → refresh resumes → results with evidence and no percentages → "Add to roadmap" → sign-up → back to results → `/app` with exactly 1 application, and the profile saved.
+  - The cost planner opens on its first question with no currency figures.
+- Admin review screen: tested in a real browser **locally** on a `[TEST]` record. Confirm open needs a reason; it saved a new version, and the quoted rules were confirmed. No real production record was confirmed.
+- Chrome walk on the live site at 1440×900, as the founder's existing session (no password typed, nothing saved to the account):
+  - The homepage button opens `/route`.
+  - The "studying in China" path asks about current studies, and the scholarship-holder path asks about renewal versus more funding.
+  - Results show 0 potential, 5 need confirmation and 5 closed for China, with the labelled estimate. There were no console errors.
+  - The test answers were then cleared from that browser.
+  - The logged-out and signed-in student paths on live were covered by Playwright. A browser agent can't create live accounts with passwords.
+- Cleanup: e2e users, the "E2E test report" error report and its task were deleted. Production now has 1 user and 0 orphan rows in applications, tasks, profiles, sessions, plans and documents.
+
+## Bugs found and fixed this session
+- Refreshing `/route` restarted the questions at step 1 (the answers were kept). It now resumes on the current question.
+- After sign-up, the pending save could run twice and create duplicate applications. A guard and an early clear of the pending flag fixed this; the test checks for exactly 1 application.
+- An FAQ answer still said records could be "automated"-verified. It is now rewritten.
+
+## Known limits / blockers
+- **No record is verified yet**, so "Verified fits" is always empty with an honest message. This only changes when the founder (admin) confirms records in Admin → Scholarships.
+- The roadmap endpoint is idempotent for repeated calls, but two truly simultaneous calls could still race. The client now prevents this; a database unique index would close it fully (follow-up).
+- In a background browser tab, step animations pause, so the question heading can lag behind. This doesn't happen in a visible tab.
+- Costs: PKR 0. No paid services were used, no firecrawl credits were used this session, and payments remain off.
+
+## Why each of the 32 real records is not verified (live, 2026-10-27)
+All are `NEEDS_REVIEW`: AI research is evidence only, and a reviewer must confirm against the official page.
+
+| # | Record | Official page shows | Proposed deadline | Why it is not verified |
+|---|---|---|---|---|
+| 1 | CAS-ANSO Scholarship (Degree Program) (`cn-cas-anso`) | Looks closed | 2026-01-31 | The official page shows the 2026/27 (2026 call) round has closed (deadline was 31 January 2026). Watch for the next call. A reviewer has not confirmed this yet. |
+| 2 | Chinese Government Scholarship - Type A (HEC nomination, Pakistan) (`cn-cgs-type-a-hec`) | Looks closed | 2026-01-05 | The official page shows the 2026/27 round has closed (deadline was 5 January 2026). Watch for the next call. A reviewer has not confirmed this yet. |
+| 3 | Chinese Government Scholarship Type B - Tsinghua University (graduate) (`cn-cgs-type-b-tsinghua`) | Looks closed | — | The official page shows the 2026/27 round has closed. Watch for the next call. A reviewer has not confirmed this yet. |
+| 4 | Chinese Government Scholarship Type B - Zhejiang University (`cn-cgs-type-b-zju`) | Looks closed | 2025-12-31 | The official page shows the 2026/27 round has closed (deadline was 31 December 2025). Watch for the next call. A reviewer has not confirmed this yet. |
+| 5 | Zhejiang Government Scholarship (new international postgraduates, ZJU) (`cn-zhejiang-gov-zju`) | Looks closed | 2026-02-28 | The official page shows the 2026/27 round has closed (deadline was 28 February 2026). Watch for the next call. A reviewer has not confirmed this yet. |
+| 6 | DAAD Doctoral Programmes in Germany (`de-daad-doctoral-programmes`) | Looks closed | 2026-08-31 | The official page shows the 2027 (funding start) round has closed (deadline was 31 August 2026). Watch for the next call. A reviewer has not confirmed this yet. |
+| 7 | DAAD Study Scholarships - Postgraduate Studies in Fine Art, Design, Visual Communication and Film (`de-daad-fine-art-design-film`) | Looks closed | 2026-10-15 | The official page shows the 2027/28 (funding from Oct 2027) round has closed (deadline was 15 October 2026). Watch for the next call. A reviewer has not confirmed this yet. |
+| 8 | DAAD Research Grants in Germany (doctoral / early postdoc) (`de-daad-research-grants`) | Looks closed | 2026-08-31 | The official page shows the 2027 (funding start) round has closed (deadline was 31 August 2026). Watch for the next call. A reviewer has not confirmed this yet. |
+| 9 | DiSCo Lazio Right to Study Scholarship (`it-disco-lazio-borsa`) | Looks closed | 2026-07-22 | The official page shows the 2026/27 round has closed (deadline was 22 July 2026). Watch for the next call. A reviewer has not confirmed this yet. |
+| 10 | ER.GO Borsa di studio (Emilia-Romagna regional DSU scholarship) (`it-ergo-borsa`) | Looks closed | 2026-08-24 | The official page shows the 2026/27 round has closed (deadline was 24 August 2026). Watch for the next call. A reviewer has not confirmed this yet. |
+| 11 | Invest Your Talent in Italy (IYT) (`it-invest-your-talent`) | Looks closed | 2026-05-11 | The official page shows the 2026/27 (11th edition) round has closed (deadline was 11 May 2026). Watch for the next call. A reviewer has not confirmed this yet. |
+| 12 | MAECI Italian Government Scholarships for foreign students (`it-maeci`) | Looks closed | 2026-03-26 | The official page shows the 2026/27 round has closed (deadline was 26 March 2026). Watch for the next call. A reviewer has not confirmed this yet. |
+| 13 | Tsinghua University International Undergraduate Freshmen Scholarship (`cn-tsinghua-ug-freshmen`) | Looks open | 2026-11-20 | The official page says the 2027/28 (2027 intake, first year) call is open until 20 November 2026. Our research quoted it word for word, but a Raasta reviewer has not confirmed it yet, so check the official page before relying on it. |
+| 14 | DSU Toscana Borsa di studio 2026/27 - PhD and specialisation window (`it-dsu-toscana-phd`) | Looks open | 2026-11-16 | The official page says the 2026/27 call is open until 16 November 2026. Our research quoted it word for word, but a Raasta reviewer has not confirmed it yet, so check the official page before relying on it. |
+| 15 | Politecnico di Milano Merit-Based International Scholarship - Gold (`it-polimi-gold`) | Looks open | 2026-12-15 | The official page says the 2027/28 call is open until 15 December 2026. Our research quoted it word for word, but a Raasta reviewer has not confirmed it yet, so check the official page before relying on it. |
+| 16 | Politecnico di Milano Merit-Based International Scholarship - Platinum (`it-polimi-platinum`) | Looks open | 2026-12-15 | The official page says the 2027/28 call is open until 15 December 2026. Our research quoted it word for word, but a Raasta reviewer has not confirmed it yet, so check the official page before relying on it. |
+| 17 | Politecnico di Milano Merit-Based International Scholarship - Silver (Cremona, Lecco, Mantova, Piacenza) (`it-polimi-silver`) | Looks open | 2026-12-15 | The official page says the 2027/28 call is open until 15 December 2026. Our research quoted it word for word, but a Raasta reviewer has not confirmed it yet, so check the official page before relying on it. |
+| 18 | Beijing Government Scholarship (BGS) - Categories A/B/C (`cn-beijing-gov`) | Status unknown | — | The call covers three categories with different funding (A full, B no living costs, C tuition and insurance only) and gives no central deadline. |
+| 19 | Chinese Government Scholarship (Bilateral / University Program) - CSC guide (`cn-cgs-csc-general`) | Status unknown | — | The CSC guide has no single deadline: each agency and university sets its own, so there is no date to confirm yet. |
+| 20 | Shanghai Government Scholarship - Category A (Full) (`cn-shanghai-gov-a`) | Status unknown | — | The funding amounts are published only as an image we could not read, and each university sets its own dates. |
+| 21 | Shanghai Government Scholarship - Category B (Partial) (`cn-shanghai-gov-b`) | Status unknown | — | The funding amounts are published only as an image we could not read, and each university sets its own dates. |
+| 22 | DAAD Development-Related Postgraduate Courses (EPOS) (`de-daad-epos`) | Status unknown | — | Each course sets its own deadline; DAAD's list just says "see website of the course". |
+| 23 | DAAD Helmut-Schmidt-Programme (Master's Scholarships for Public Policy and Good Governance) (`de-daad-helmut-schmidt`) | Status unknown | — | The deadline was missing from the official PDF we read, and the selection runs in Oct/Nov 2026, so this round has probably closed. |
+| 24 | DAAD Study Scholarships for STEM Disciplines (`de-daad-stem`) | Status unknown | — | Pakistan is not in DAAD's country list for this programme. Likely not open to applicants from Pakistan. |
+| 25 | DAAD Study Scholarships - Master Studies for All Academic Disciplines (`de-daad-study-all-disciplines`) | Status unknown | — | Pakistan does not appear in DAAD's country list for this programme and no current deadline is published. Likely not open to applicants from Pakistan. |
+| 26 | Deutschlandstipendium (`de-deutschlandstipendium`) | Status unknown | — | Each university sets its own deadline; there is no single national date. |
+| 27 | Friedrich-Ebert-Stiftung Scholarship for International Students (`de-fes`) | Status unknown | — | Aimed at students already studying in Germany; the dated deadlines on the programme pages were not checked. |
+| 28 | KAAD Scholarship Programme 1 (`de-kaad-programme-1`) | Status unknown | — | Pakistan is not a KAAD focus country, so applications are accepted only in exceptional cases. No dates or amounts are published. |
+| 29 | Konrad-Adenauer-Stiftung International Scholarship Program (`de-kas-international`) | Status unknown | — | Realistic mainly for students already in Germany with B2 German; no 2027 date is published. |
+| 30 | International Talents @Unibo study grants (Master's) (`it-unibo-international-talents`) | Status unknown | 2025-05-30 | Only last year's (2025-26) official call was found; the current call was not. |
+| 31 | Padua International Excellence Scholarship (`it-unipd-excellence`) | Status unknown | — | The next call (for 2027/28) is due in November 2026 and has not been published yet. |
+| 32 | Heinrich Boell Foundation Scholarship (international Master's and PhD) (`de-boell`) | Looks upcoming | 2027-03-01 | The official page says the 2027/28 (Spring 2027 round) call opens later (deadline 1 March 2027). Our research quoted it, but a reviewer has not confirmed it yet. |
+
+---
+
 # Raasta — session 4 report: Cost Planner (2026-10-25)
 
 Live: https://raasta.raasta.workers.dev/costs · Repo: https://github.com/thekingsaabje/raasta (`dev`, merged to `main` after live tests)
