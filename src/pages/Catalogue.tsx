@@ -38,7 +38,9 @@ export function CatalogueTable({ limit, syncUrl }: { limit?: number; syncUrl?: b
     go(`/scholarships${p ? "?" + p : ""}`, true);
   }, [country, debounced, go, syncUrl]);
 
-  const qs = new URLSearchParams(Object.entries({ q: debounced, country, level, applicant, status }).filter(([, v]) => v)).toString();
+  // The status filter maps to: reviewer-confirmed, a research cycle ("cycle:open"), or a stored status.
+  const statusParams = status === "confirmed" ? { confirmed: "1" } : status.startsWith("cycle:") ? { cycle: status.slice(6), status: "NEEDS_REVIEW" } : { status };
+  const qs = new URLSearchParams(Object.entries({ q: debounced, country, level, applicant, ...statusParams }).filter(([, v]) => v)).toString();
   const { data, loading, error } = useApi<{ scholarships: any[] }>(`/scholarships${qs ? "?" + qs : ""}`);
   const elig = useApi<{ assessments: any[] }>(user ? "/me/assessments" : null);
   const eligMap = useMemo(() => Object.fromEntries((elig.data?.assessments ?? []).map((a) => [a.scholarship.id, a.assessment.overall])), [elig.data]);
@@ -72,8 +74,9 @@ export function CatalogueTable({ limit, syncUrl }: { limit?: number; syncUrl?: b
             {Object.entries(FUNDING_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
           <select className="input" aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">Any status</option><option value="VERIFIED_OPEN">Verified · open</option><option value="VERIFIED_UPCOMING">Verified · upcoming</option>
-            <option value="VERIFIED_CLOSED">Verified · closed</option><option value="NEEDS_REVIEW">Not yet verified</option><option value="CONFLICTING_SOURCES">Sources conflict</option>
+            <option value="">Any status</option><option value="confirmed">Confirmed by reviewer</option>
+            <option value="cycle:open">Looks open (not yet verified)</option><option value="cycle:upcoming">Looks upcoming (not yet verified)</option>
+            <option value="cycle:closed">Looks closed</option><option value="cycle:unknown">Needs verification</option><option value="CONFLICTING_SOURCES">Conflicting information</option>
           </select>
           {filtersOn && <button className="btn btn-link btn-sm" onClick={() => { setLevel(""); setApplicant(""); setFunding(""); setStatus(""); }}>Reset</button>}
           <label className="row subtle" style={{ "--gap": "7px", marginLeft: "auto" } as any}>
@@ -121,7 +124,7 @@ export function CatalogueTable({ limit, syncUrl }: { limit?: number; syncUrl?: b
             <tbody>
               {[
                 ["Country", (s: any) => COUNTRY[s.country]?.name],
-                ["Verification", (s: any) => <StatusBadge status={s.status} method={s.verification_method} />],
+                ["Verification", (s: any) => <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} />],
                 ["Your eligibility", (s: any) => (eligMap[s.id] ? <EligBadge status={eligMap[s.id]} /> : user ? "—" : <Link to="/signup">Sign in to check</Link>)],
                 ["Levels", (s: any) => (s.levels ?? []).join(", ") || "—"],
                 ["Funding type", (s: any) => FUNDING_LABEL[(s.funding_class ?? "unknown") as keyof typeof FUNDING_LABEL]],

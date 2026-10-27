@@ -10,7 +10,7 @@ export function HowItWorks() {
           {[
             ["Official sources first", "The body that decides: provider, university, ministry, embassy, HEC, CSC, DAAD or the regional DSU office. Forums and agents are leads, never evidence."],
             ["One rule at a time", "Nationality, degree, grades, age, language, existing-scholarship limits, coverage, route and deadline: each stored separately with a verbatim quote, link and date."],
-            ["Two levels of checking", "“Auto-checked” means our research matched a verbatim quote on the official page for the current cycle. “Verified” without that label means a reviewer confirmed it."],
+            ["Only people verify", "Research collects word-for-word quotes from official pages, but that never makes a record verified. Until a reviewer confirms it, a record says “Looks open · not yet verified” or “Needs verification”."],
             ["Monitoring and corrections", "Official pages are re-checked several times a day. A change opens a review task; a failed fetch never changes a status. Corrections keep history and notify students."],
           ].map(([t, d]) => <div key={t} style={{ paddingRight: 20 }}><h3 style={{ marginBottom: 8 }}>{t}</h3><p className="muted" style={{ fontSize: 15 }}>{d}</p></div>)}
         </div>
@@ -18,12 +18,14 @@ export function HowItWorks() {
           <section className="panel">
             <h2 style={{ fontSize: 24, marginBottom: 12 }}>What the labels mean</h2>
             {[
-              ["VERIFIED_OPEN", "The current call was checked and applications are open."],
-              ["VERIFIED_UPCOMING", "Checked; the application window opens later."],
-              ["VERIFIED_CLOSED", "Checked; this cycle has closed. Watch for the next call."],
-              ["NEEDS_REVIEW", "Official source found, but the current call hasn't been confirmed."],
-              ["CONFLICTING_SOURCES", "Official sources disagree; both are kept until resolved."],
-            ].map(([s, d]) => <div key={s} className="legend-row" style={{ borderTop: "1px solid var(--line)" }}><StatusBadge status={s} /><span className="muted" style={{ fontSize: 15 }}>{d}</span></div>)}
+              ["VERIFIED_OPEN", "", "A Raasta reviewer checked the current official call: applications are open."],
+              ["VERIFIED_UPCOMING", "", "A reviewer checked: the application window opens later."],
+              ["VERIFIED_CLOSED", "", "A reviewer checked: this round has closed. Watch for the next call."],
+              ["NEEDS_REVIEW", "open", "Our research quoted the official page and it appears open, but no reviewer has confirmed it. A preliminary lead only."],
+              ["NEEDS_REVIEW", "closed", "The official page appears to show a closed round; not yet confirmed."],
+              ["NEEDS_REVIEW", "", "We couldn't tie the record to a current official call yet. Check the official page."],
+              ["CONFLICTING_SOURCES", "", "Official sources disagree; both are kept until a reviewer resolves it."],
+            ].map(([s, cy, d]) => <div key={s + cy} className="legend-row" style={{ borderTop: "1px solid var(--line)" }}><StatusBadge status={s} cycle={cy || null} /><span className="muted" style={{ fontSize: 15 }}>{d}</span></div>)}
             <div style={{ height: 18 }} />
             {[
               ["MET", "Your profile satisfies this published rule."],

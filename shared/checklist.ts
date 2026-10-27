@@ -20,7 +20,9 @@ export interface TaskDraft {
 const CONFIRM = "Confirm the exact requirement on the official page before relying on this.";
 
 export function generateChecklist(s: Scholarship, reqs: Requirement[]): TaskDraft[] {
-  const deadlineConfirmed = s.status === "VERIFIED_OPEN" || s.status === "VERIFIED_UPCOMING";
+  // Only a reviewer-confirmed record has a confirmed deadline; a research (proposed) date still shows, unconfirmed.
+  const deadlineConfirmed = (s.status === "VERIFIED_OPEN" || s.status === "VERIFIED_UPCOMING") && !!s.deadline_date;
+  const dueDate = s.deadline_date ?? s.proposed_deadline ?? null;
   const t: TaskDraft[] = [
     {
       key: "read_call",
@@ -122,8 +124,8 @@ export function generateChecklist(s: Scholarship, reqs: Requirement[]): TaskDraf
     documents: [],
     source_url: s.official_url,
     source_verified_at: s.last_verified_at,
-    due_date: s.deadline_date,
-    due_confirmed: deadlineConfirmed && !!s.deadline_date,
+    due_date: dueDate,
+    due_confirmed: deadlineConfirmed,
     next_action: "Upload confirmation once submitted",
   });
 

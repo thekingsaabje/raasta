@@ -66,6 +66,12 @@ export interface Scholarship {
   version: number;
   updated_at: string;
   verification_method?: "agent_evidence" | "human" | null;
+  /** What the official page appears to show (research evidence, NOT confirmation). */
+  cycle_state?: "open" | "upcoming" | "closed" | "unknown";
+  /** Deadline from research evidence; deadline_date is only set when a reviewer confirmed it. */
+  proposed_deadline?: string | null;
+  /** Plain-English reason the record is not reviewer-confirmed. */
+  status_reason?: string | null;
   funding_class?: FundingClass;
   monitor_url?: string | null;
 }

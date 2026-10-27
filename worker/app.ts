@@ -58,6 +58,8 @@ app.get("/scholarships", async (c) => {
   const args: unknown[] = [];
   if (q.country) (where.push("country = ?"), args.push(q.country));
   if (q.status) (where.push("status = ?"), args.push(q.status));
+  if (q.cycle && ["open", "upcoming", "closed", "unknown"].includes(q.cycle)) (where.push("cycle_state = ?"), args.push(q.cycle));
+  if (q.confirmed === "1") where.push("verification_method = 'human' AND status LIKE 'VERIFIED_%'");
   if (q.applicant) (where.push("(applicant_type = ? OR applicant_type = 'both')"), args.push(q.applicant));
   if (q.level) (where.push("levels LIKE ?"), args.push(`%"${q.level.replace(/[^a-z]/g, "")}"%`));
   if (q.q) {
@@ -277,7 +279,7 @@ me.post("/applications", async (c) => {
       b.title ?? s?.name ?? "Untitled application",
       b.institution ?? s?.provider ?? null,
       b.mode,
-      s?.deadline_date ?? null,
+      s ? s.deadline_date ?? s.proposed_deadline ?? null : null,
       s && (s.status === "VERIFIED_OPEN" || s.status === "VERIFIED_UPCOMING") && s.deadline_date ? 1 : 0,
       t,
       t,
@@ -418,7 +420,7 @@ me.get("/dashboard", async (c) => {
   // Relevant opportunities: real (non-test) awards not yet saved or tracked whose published rules
   // the student does not fail. Ordered MET first; never presented as a chance of success.
   const tracked = new Set([...apps.results.map((a) => a.scholarship_id), ...(await db.prepare("SELECT scholarship_id FROM saved_scholarships WHERE user_id = ?").bind(id).all<{ scholarship_id: string }>()).results.map((r) => r.scholarship_id)]);
-  const { results: schRows } = await db.prepare("SELECT * FROM scholarships WHERE is_test_data = 0 AND status NOT IN ('VERIFIED_CLOSED','CANCELLED')").all<Record<string, unknown>>();
+  const { results: schRows } = await db.prepare("SELECT * FROM scholarships WHERE is_test_data = 0 AND status NOT IN ('VERIFIED_CLOSED','CANCELLED') AND cycle_state != 'closed'").all<Record<string, unknown>>();
   const allReqs = await listRequirements(db);
   const rank: Record<string, number> = { MET: 0, NEEDS_REVIEW: 1, UNKNOWN: 2 };
   const opportunities = Object.keys(profile).length
@@ -429,7 +431,7 @@ me.get("/dashboard", async (c) => {
         .filter((x) => x.a.overall !== "NOT_MET")
         .sort((x, y) => rank[x.a.overall] - rank[y.a.overall])
         .slice(0, 5)
-        .map(({ s, a }) => ({ id: s.id, name: s.name, country: s.country, status: s.status, verification_method: s.verification_method, funding_class: s.funding_class, overall: a.overall }))
+        .map(({ s, a }) => ({ id: s.id, name: s.name, country: s.country, status: s.status, cycle_state: s.cycle_state, status_reason: s.status_reason, funding_class: s.funding_class, overall: a.overall }))
     : [];
 
   const funding: { title: string; why: string; to: string }[] = [];
@@ -677,12 +679,21 @@ admin.patch("/scholarships/:id", async (c) => {
     db.prepare("INSERT INTO record_history (entity, entity_id, version, snapshot, changed_by, reason, changed_at) VALUES ('scholarship', ?, ?, ?, ?, ?, ?)").bind(s.id, s.version, JSON.stringify(s), aid(c), b.reason, t),
     // A reviewer's verification is recorded as 'human'; moving back to review clears the method.
     db.prepare(
-      "UPDATE scholarships SET status = ?, deadline_date = ?, deadline_text = ?, writing_policy = ?, funding_class = ?, evidence_note = ?, last_verified_at = ?, verification_method = ?, version = version + 1, updated_at = ? WHERE id = ?",
+      `UPDATE scholarships SET status = ?, deadline_date = ?, deadline_text = ?, writing_policy = ?, funding_class = ?, evidence_note = ?, last_verified_at = ?,
+       verification_method = ?, cycle_state = ?, status_reason = ?, version = version + 1, updated_at = ? WHERE id = ?`,
     ).bind(
       next.status, next.deadline_date, next.deadline_text, next.writing_policy, next.funding_class ?? "unknown", next.evidence_note,
-      verifying ? t : s.last_verified_at, verifying ? "human" : null, t, s.id,
+      verifying ? t : null, verifying ? "human" : s.verification_method === "human" ? null : s.verification_method ?? null,
+      verifying ? ({ VERIFIED_OPEN: "open", VERIFIED_UPCOMING: "upcoming", VERIFIED_CLOSED: "closed" } as Record<string, string>)[next.status] : s.cycle_state ?? "unknown",
+      verifying ? null : next.status === "CONFLICTING_SOURCES" ? `Official sources disagree. ${b.reason}` : s.status_reason ?? null,
+      t, s.id,
     ),
   ];
+  // A reviewer decision resolves the record's open verification task.
+  if (verifying || next.status === "CONFLICTING_SOURCES" || next.status === "CANCELLED")
+    stmts.push(
+      db.prepare("UPDATE review_tasks SET status = 'done', resolved_at = ?, resolved_by = ?, detail = detail || ' | ' || ? WHERE scholarship_id = ? AND kind = 'verify_record' AND status = 'open'").bind(t, aid(c), `Reviewer: ${next.status} — ${b.reason}`, s.id),
+    );
   // A deadline change flows into every linked application and its submission task.
   const deadlineChanged = b.deadline_date !== undefined && b.deadline_date !== s.deadline_date;
   const confirmed = (next.status === "VERIFIED_OPEN" || next.status === "VERIFIED_UPCOMING") && !!next.deadline_date ? 1 : 0;
@@ -701,6 +712,22 @@ admin.patch("/scholarships/:id", async (c) => {
     for (const r of results) if (await notify(db, r.user_id, "change", `sch:${s.id}:v${s.version + 1}`, `Update: ${s.name}`, b.reason)) notified++;
   }
   return c.json({ scholarship: await getScholarship(db, s.id), notified });
+});
+
+// Reviewer confirms every rule of a record that carries an official quote (after reading them against the source).
+admin.post("/scholarships/:id/confirm-rules", async (c) => {
+  const b = await body(c, z.object({ reason: z.string().min(3).max(500) }));
+  const db = c.env.DB;
+  const { results } = await db.prepare("SELECT * FROM requirements WHERE scholarship_id = ? AND review_status != 'VERIFIED' AND excerpt IS NOT NULL AND excerpt != ''").bind(c.req.param("id")).all<Record<string, any>>();
+  if (!results.length) return c.json({ confirmed: 0 });
+  const t = now();
+  const stmts = results.flatMap((r) => [
+    db.prepare("INSERT INTO record_history (entity, entity_id, version, snapshot, changed_by, reason, changed_at) VALUES ('requirement', ?, ?, ?, ?, ?, ?)").bind(r.id, r.version, JSON.stringify(r), aid(c), b.reason, t),
+    db.prepare("UPDATE requirements SET review_status = 'VERIFIED', verified_at = ?, version = version + 1 WHERE id = ?").bind(t, r.id),
+  ]);
+  await db.batch(stmts);
+  await audit(db, aid(c), "rules_confirm", "scholarship", c.req.param("id"), { count: results.length, reason: b.reason });
+  return c.json({ confirmed: results.length });
 });
 
 admin.patch("/requirements/:id", async (c) => {

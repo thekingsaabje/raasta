@@ -189,7 +189,7 @@ function Scholarships() {
             {data.scholarships.map((s: any) => (
               <tr key={s.id}>
                 <td><strong>{s.name}</strong> {!!s.is_test_data && <TestBadge />}<div className="subtle">{s.country} · {s.provider}</div></td>
-                <td><StatusBadge status={s.status} /></td>
+                <td><StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} /></td>
                 <td>{s.verified_rules}/{s.rule_count}</td>
                 <td>{fmtDate(s.updated_at)} · v{s.version}</td>
                 <td><button className="btn btn-soft btn-sm" onClick={() => open(s)}>Review</button></td>

@@ -39,22 +39,37 @@ describe("research seed", () => {
     await env.DB.exec(upd);
     expect(await snap()).toEqual(first);
 
-    const verified = (await env.DB.prepare("SELECT id, verification_method FROM scholarships WHERE status LIKE 'VERIFIED_%' AND is_test_data = 0").all<any>()).results;
-    expect(verified.length).toBeGreaterThan(0);
-    for (const s of verified) {
-      expect(s.verification_method).toBe("agent_evidence");
-      const q = await env.DB.prepare("SELECT COUNT(*) n FROM requirements WHERE scholarship_id = ? AND excerpt IS NOT NULL").bind(s.id).first<any>();
-      expect(q.n).toBeGreaterThan(0);
-    }
-    // Verified rules exist only on verified (current-cycle) records.
-    const stray = await env.DB.prepare("SELECT COUNT(*) n FROM requirements r JOIN scholarships s ON s.id = r.scholarship_id WHERE r.review_status = 'VERIFIED' AND s.is_test_data = 0 AND s.status NOT LIKE 'VERIFIED_%'").first<any>();
-    expect(stray.n).toBe(0);
-    // Closed-cycle records never carry rules that can reject a student.
-    const closedVerified = await env.DB.prepare("SELECT COUNT(*) n FROM requirements r JOIN scholarships s ON s.id = r.scholarship_id WHERE r.review_status = 'VERIFIED' AND s.status = 'VERIFIED_CLOSED' AND s.is_test_data = 0").first<any>();
-    expect(closedVerified.n).toBe(0);
-    // Open/upcoming records carry a checked deadline date.
-    const noDate = await env.DB.prepare("SELECT COUNT(*) n FROM scholarships WHERE status IN ('VERIFIED_OPEN','VERIFIED_UPCOMING') AND deadline_date IS NULL").first<any>();
-    expect(noDate.n).toBe(0);
+    // Research never verifies anything: no VERIFIED_* records and no verified rules on real data.
+    const verified = await env.DB.prepare("SELECT COUNT(*) n FROM scholarships WHERE status LIKE 'VERIFIED_%' AND is_test_data = 0").first<any>();
+    expect(verified.n).toBe(0);
+    const vr = await env.DB.prepare("SELECT COUNT(*) n FROM requirements r JOIN scholarships s ON s.id = r.scholarship_id WHERE r.review_status = 'VERIFIED' AND s.is_test_data = 0").first<any>();
+    expect(vr.n).toBe(0);
+  });
+
+  it("status sync: research cycle kept as evidence, every real record explained, idempotent, reviewer records untouched", async () => {
+    const env = makeEnv();
+    const root = join(import.meta.dirname, "..", "..");
+    await env.DB.exec(readFileSync(join(root, "seed", "seed.sql"), "utf8"));
+    await env.DB.exec(readFileSync(join(root, "seed", "verification-update.sql"), "utf8"));
+    // Simulate the live state before the policy change: one research-verified record, one reviewer-confirmed record.
+    await env.DB.exec("UPDATE scholarships SET status = 'VERIFIED_OPEN', verification_method = 'agent_evidence', deadline_date = '2026-12-15' WHERE id = 'it-polimi-gold';");
+    await env.DB.exec("UPDATE scholarships SET status = 'VERIFIED_CLOSED', verification_method = 'human', status_reason = NULL WHERE id = 'it-maeci';");
+    const sync = readFileSync(join(root, "seed", "status-sync.sql"), "utf8");
+    await env.DB.exec(sync);
+    const snap = async () => env.DB.prepare("SELECT (SELECT COUNT(*) FROM record_history) h, (SELECT SUM(version) FROM scholarships) v, (SELECT COUNT(*) FROM review_tasks) t").first<any>();
+    const first = await snap();
+    await env.DB.exec(sync);
+    expect(await snap()).toEqual(first);
+
+    const gold = await env.DB.prepare("SELECT * FROM scholarships WHERE id = 'it-polimi-gold'").first<any>();
+    expect(gold).toMatchObject({ status: "NEEDS_REVIEW", cycle_state: "open", proposed_deadline: "2026-12-15", deadline_date: null });
+    expect(gold.status_reason).toMatch(/not confirmed/);
+    const maeci = await env.DB.prepare("SELECT status, verification_method FROM scholarships WHERE id = 'it-maeci'").first<any>();
+    expect(maeci).toEqual({ status: "VERIFIED_CLOSED", verification_method: "human" });
+    const cycles = (await env.DB.prepare("SELECT cycle_state, COUNT(*) n FROM scholarships WHERE is_test_data = 0 AND verification_method IS NOT 'human' GROUP BY cycle_state").all<any>()).results;
+    expect(Object.fromEntries(cycles.map((c: any) => [c.cycle_state, c.n]))).toEqual({ open: 5, upcoming: 1, closed: 11, unknown: 14 });
+    const unexplained = await env.DB.prepare("SELECT COUNT(*) n FROM scholarships WHERE is_test_data = 0 AND status != 'VERIFIED_CLOSED' AND (status_reason IS NULL OR status_reason = '')").first<any>();
+    expect(unexplained.n).toBe(0);
   });
 
   it("cost references load; every verified figure has a quote, a link and a date", async () => {

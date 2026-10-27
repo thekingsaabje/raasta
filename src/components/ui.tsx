@@ -15,26 +15,29 @@ export const stagger: { container: Variants; item: Variants } = {
   item: { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const } } },
 };
 
-const OPP: Record<string, { label: string; cls: string; icon: ReactNode }> = {
-  VERIFIED_OPEN: { label: "Verified · open", cls: "b-ok", icon: <ShieldCheck size={13} /> },
-  VERIFIED_UPCOMING: { label: "Verified · upcoming", cls: "b-info", icon: <ShieldCheck size={13} /> },
-  VERIFIED_CLOSED: { label: "Verified · closed", cls: "b-neutral", icon: <ShieldCheck size={13} /> },
-  CANCELLED: { label: "Cancelled", cls: "b-bad", icon: <XCircle size={13} /> },
-  NEEDS_REVIEW: { label: "Not yet verified", cls: "b-warn", icon: <Clock size={13} /> },
-  CONFLICTING_SOURCES: { label: "Sources conflict", cls: "b-bad", icon: <AlertTriangle size={13} /> },
-  UNKNOWN: { label: "Status unknown", cls: "b-neutral", icon: <CircleHelp size={13} /> },
+// "Verified" only ever means a Raasta reviewer confirmed the current call. Research evidence is shown as "Looks …".
+const OPP: Record<string, { label: string; cls: string; icon: ReactNode; explain: string }> = {
+  VERIFIED_OPEN: { label: "Open · confirmed", cls: "b-ok", icon: <ShieldCheck size={13} />, explain: "A Raasta reviewer checked the current official call: applications are open." },
+  VERIFIED_UPCOMING: { label: "Upcoming · confirmed", cls: "b-info", icon: <ShieldCheck size={13} />, explain: "A reviewer checked the current call: it opens later." },
+  VERIFIED_CLOSED: { label: "Closed · confirmed", cls: "b-neutral", icon: <ShieldCheck size={13} />, explain: "A reviewer checked: this round has closed. Watch for the next call." },
+  CANCELLED: { label: "Cancelled", cls: "b-bad", icon: <XCircle size={13} />, explain: "The provider has cancelled this call." },
+  NEEDS_REVIEW: { label: "Needs verification", cls: "b-warn", icon: <Clock size={13} />, explain: "Not yet confirmed by a reviewer. Treat it as a lead and check the official page." },
+  CONFLICTING_SOURCES: { label: "Conflicting information", cls: "b-bad", icon: <AlertTriangle size={13} />, explain: "Official sources disagree; we keep both until a reviewer resolves it." },
+  UNKNOWN: { label: "Status unknown", cls: "b-neutral", icon: <CircleHelp size={13} />, explain: "We don't know the current status." },
 };
-const METHOD: Record<string, string> = {
-  agent_evidence: "Checked by Raasta research against a verbatim quote from the official page; not yet confirmed by a human reviewer.",
-  human: "Confirmed by a Raasta reviewer against the official page.",
+const LOOKS: Record<string, { label: string; cls: string }> = {
+  open: { label: "Looks open · not yet verified", cls: "b-warn" },
+  upcoming: { label: "Looks upcoming · not yet verified", cls: "b-warn" },
+  closed: { label: "Looks closed · not yet verified", cls: "b-neutral" },
 };
-export function StatusBadge({ status, method }: { status: string; method?: string | null }) {
+export const statusExplain = (status: string) => (OPP[status] ?? OPP.UNKNOWN).explain;
+
+export function StatusBadge({ status, cycle, reason }: { status: string; method?: string | null; cycle?: string | null; reason?: string | null }) {
   const s = OPP[status] ?? OPP.UNKNOWN;
-  const verified = status.startsWith("VERIFIED_");
-  const suffix = verified && method === "agent_evidence" ? " · auto-checked" : "";
+  const looks = status === "NEEDS_REVIEW" && cycle ? LOOKS[cycle] : undefined;
   return (
-    <span className={`badge ${s.cls}`} title={verified && method ? METHOD[method] : s.label}>
-      {s.icon}{s.label}{suffix}
+    <span className={`badge ${looks?.cls ?? s.cls}`} title={reason ?? s.explain}>
+      {s.icon}{looks?.label ?? s.label}
     </span>
   );
 }

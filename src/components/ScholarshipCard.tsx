@@ -13,7 +13,8 @@ export function initials(provider: string) {
 }
 
 export function deadlineText(s: any) {
-  if (s.deadline_date) return { main: fmtDate(s.deadline_date), sub: s.status?.startsWith("VERIFIED_") ? "Checked deadline" : "Not confirmed" };
+  if (s.deadline_date && s.status?.startsWith("VERIFIED_")) return { main: fmtDate(s.deadline_date), sub: "Confirmed by reviewer" };
+  if (s.proposed_deadline) return { main: fmtDate(s.proposed_deadline), sub: "From official page · not yet verified" };
   if (s.deadline_text) return { main: "Not confirmed", sub: s.deadline_text };
   return { main: "Not published", sub: "" };
 }
@@ -49,9 +50,9 @@ export function ScholarshipRow({ s, elig, onCompare, comparing }: { s: any; elig
       </div>
       <div className="c-fund"><span className={`fund ${fc === "unknown" ? "unknown" : ""}`}>{FUNDING_LABEL[fc]}</span></div>
       <div className="c-dead"><div className="num" style={{ fontSize: 14, fontWeight: 500 }}>{d.main}</div>{d.sub && <div className="tiny clamp1" title={d.sub}>{d.sub}</div>}</div>
-      <div className="c-status">{elig ? <EligBadge status={elig} /> : <StatusBadge status={s.status} method={s.verification_method} />}</div>
+      <div className="c-status">{elig ? <EligBadge status={elig} /> : <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} />}</div>
       <div className="c-meta">
-        {elig ? <EligBadge status={elig} /> : <StatusBadge status={s.status} method={s.verification_method} />}
+        {elig ? <EligBadge status={elig} /> : <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} />}
         <span className={`fund ${fc === "unknown" ? "unknown" : ""}`} style={{ fontSize: 13 }}>{FUNDING_LABEL[fc]}</span>
         <span className="tiny">Deadline: {d.main}</span>
       </div>

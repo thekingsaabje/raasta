@@ -61,9 +61,11 @@ for (const rec of V.scholarships ?? []) {
   const status = STATUSES.has(rec.status_proposed) ? rec.status_proposed : "NEEDS_REVIEW";
   const verified = status.startsWith("VERIFIED_");
   const hasVerbatim = (rec.evidence ?? []).some((e) => e.excerpt_verbatim);
-  // A verified status needs at least one verbatim official quote; otherwise it stays in review.
-  const finalStatus = verified && !hasVerbatim ? "NEEDS_REVIEW" : status;
-  const isVerified = finalStatus.startsWith("VERIFIED_");
+  // Research evidence never verifies a record: the stored status is always NEEDS_REVIEW (or CONFLICTING/CANCELLED).
+  // The cycle the page shows is recorded by scripts/build-status-sync.mjs (cycle_state / proposed_deadline).
+  const finalStatus = status === "CONFLICTING_SOURCES" || status === "CANCELLED" ? status : "NEEDS_REVIEW";
+  const evidenceFound = verified && hasVerbatim;
+  const isVerified = false;
   const deadline = date(rec.deadline_date);
   const guard = `id = ${q(sid)} AND COALESCE(evidence_note, '') NOT LIKE ${q(`%${MARK}%`)}`;
   stats.updated++;
@@ -78,10 +80,10 @@ for (const rec of V.scholarships ?? []) {
     `UPDATE scholarships SET status = ${q(finalStatus)}, academic_year = COALESCE(${q(rec.academic_year)}, academic_year), deadline_date = ${q(isVerified ? deadline : null)},
       deadline_text = COALESCE(${q(rec.deadline_text_verbatim)}, deadline_text), funding_class = ${q(FUND.has(rec.funding_class) ? rec.funding_class : "unknown")},
       coverage = COALESCE(${q(coverageOf(rec.coverage))}, coverage), monitor_url = ${q(rec.monitor_url ?? null)},
-      verification_method = ${isVerified ? "'agent_evidence'" : "NULL"}, last_verified_at = ${isVerified ? q(V.checked_on) : "last_verified_at"},
+      verification_method = ${evidenceFound ? "'agent_evidence'" : "NULL"}, last_verified_at = last_verified_at,
       evidence_note = ${q(`${MARK} ${rec.notes ?? ""}`.slice(0, 1900))}, version = version + 1, updated_at = ${q(now)} WHERE ${guard};`,
   );
-  rulesSql(sid, rec, finalStatus === "VERIFIED_OPEN" || finalStatus === "VERIFIED_UPCOMING");
+  rulesSql(sid, rec, false); // research rules never reject a student; an admin verifies them
   if (!isVerified) task("verify_record", sid, `${finalStatus}: ${rec.notes ?? "needs human verification"}`);
   if (rec.monitor_url) {
     stats.sources++;
@@ -93,18 +95,19 @@ for (const rec of V.new_scholarships ?? []) {
   if (!rec.id || !rec.name || !rec.official_url || !["CN", "DE", "IT"].includes(rec.country)) continue;
   const status = STATUSES.has(rec.status_proposed) ? rec.status_proposed : "NEEDS_REVIEW";
   const hasVerbatim = (rec.evidence ?? []).some((e) => e.excerpt_verbatim);
-  const finalStatus = status.startsWith("VERIFIED_") && !hasVerbatim ? "NEEDS_REVIEW" : status;
-  const isVerified = finalStatus.startsWith("VERIFIED_");
+  const finalStatus = status === "CONFLICTING_SOURCES" || status === "CANCELLED" ? status : "NEEDS_REVIEW";
+  const evidenceFound = status.startsWith("VERIFIED_") && hasVerbatim;
+  const isVerified = false;
   stats.added++;
   out.push(
     `INSERT OR IGNORE INTO scholarships (id, name, country, provider, official_url, levels, applicant_type, funding_summary, coverage, application_route, deadline_date, deadline_text, academic_year, status, funding_class, verification_method, last_verified_at, monitor_url, is_test_data, retrieved_at, evidence_note, updated_at) VALUES (${[
       rec.id, rec.name, rec.country, rec.provider ?? rec.name, rec.official_url, JSON.stringify(rec.levels ?? []), ["new", "continuing", "both"].includes(rec.applicant_type) ? rec.applicant_type : "new",
       rec.funding_summary ?? null, coverageOf(rec.coverage) ?? "{}", rec.application_route ?? null, isVerified ? date(rec.deadline_date) : null, rec.deadline_text_verbatim ?? null,
-      rec.academic_year ?? null, finalStatus, FUND.has(rec.funding_class) ? rec.funding_class : "unknown", isVerified ? "agent_evidence" : null, isVerified ? V.checked_on : null,
+      rec.academic_year ?? null, finalStatus, FUND.has(rec.funding_class) ? rec.funding_class : "unknown", evidenceFound ? "agent_evidence" : null, null,
       rec.monitor_url ?? null, 0, V.checked_on, `${MARK} ${rec.notes ?? ""}`.slice(0, 1900), now,
     ].map(q).join(", ")});`,
   );
-  rulesSql(rec.id, rec, finalStatus === "VERIFIED_OPEN" || finalStatus === "VERIFIED_UPCOMING");
+  rulesSql(rec.id, rec, false);
   if (!isVerified) task("verify_record", rec.id, `${finalStatus}: ${rec.notes ?? "new record, needs human verification"}`);
 }
 

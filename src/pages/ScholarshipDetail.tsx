@@ -71,7 +71,7 @@ export function ScholarshipDetail({ id }: { id: string }) {
           </div>
           <h1 style={{ maxWidth: 860 }}>{s.name}</h1>
           <div className="row" style={{ "--gap": "8px" } as any}>
-            <StatusBadge status={s.status} method={s.verification_method} />
+            <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} />
             {!!s.is_test_data && <TestBadge />}
             {assess.data && <EligBadge status={assess.data.assessment.overall} prefix="You" />}
           </div>
@@ -89,7 +89,7 @@ export function ScholarshipDetail({ id }: { id: string }) {
           <Notice kind="warn">
             {s.is_test_data
               ? "This is a TEST record used to demonstrate the eligibility engine. It is not a real opportunity."
-              : "The current call for this award hasn't been verified yet. Treat the deadline and rules below as leads to confirm on the official page."}
+              : <><strong>Preliminary lead — not yet verified.</strong> {s.status_reason ?? "A Raasta reviewer hasn't confirmed the current call yet."} Don't rely on the dates or rules below until you've checked the official page.</>}
           </Notice>
         </div>
       )}
@@ -139,10 +139,11 @@ export function ScholarshipDetail({ id }: { id: string }) {
             <dt>Levels</dt><dd>{(s.levels ?? []).join(", ") || "—"}</dd>
             <dt>Applicants</dt><dd>{s.applicant_type === "new" ? "New applicants" : s.applicant_type === "continuing" ? "Continuing students" : "New & continuing"}</dd>
             <dt>Route</dt><dd>{s.application_route ?? "—"}</dd>
-            <dt>Deadline</dt><dd>{s.deadline_date ? <><span className="num">{fmtDate(s.deadline_date)}</span>{!verified && <div className="tiny">not confirmed</div>}</> : s.deadline_text ?? "Not published"}</dd>
+            <dt>Deadline</dt><dd>{s.deadline_date && verified ? <><span className="num">{fmtDate(s.deadline_date)}</span><div className="tiny">confirmed by a reviewer</div></> : s.proposed_deadline ? <><span className="num">{fmtDate(s.proposed_deadline)}</span><div className="tiny">from the official page · not yet verified</div></> : s.deadline_text ?? "Not published"}</dd>
+            <dt>Official page shows</dt><dd>{{ open: "Applications open", upcoming: "Opens later", closed: "Round closed", unknown: "No current call found" }[s.cycle_state as string] ?? "—"}{!verified && <div className="tiny">research evidence, not confirmation</div>}</dd>
             <dt>Academic year</dt><dd>{s.academic_year ?? "—"}</dd>
             <dt>Retrieved</dt><dd>{fmtDate(s.retrieved_at)}</dd>
-            <dt>Verified</dt><dd>{s.last_verified_at ? <>{fmtDate(s.last_verified_at)}<div className="tiny">{s.verification_method === "human" ? "by a reviewer" : "automated, with source quote"}</div></> : "Not yet"}</dd>
+            <dt>Verified</dt><dd>{verified && s.last_verified_at ? <>{fmtDate(s.last_verified_at)}<div className="tiny">by a Raasta reviewer</div></> : "Not yet"}</dd>
             <dt>Record</dt><dd>Version {s.version}</dd>
           </dl>
           {s.evidence_note && <><div className="divider" style={{ margin: "18px 0" }} /><p className="tiny"><strong>Research note.</strong> {s.evidence_note}</p></>}

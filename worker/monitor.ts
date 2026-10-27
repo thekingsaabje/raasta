@@ -75,7 +75,11 @@ export async function runSourceChecks(db: D1Database, limit = 10, fetcher: typeo
 
   // Verified-open/upcoming records past their checked deadline need a human status update.
   const { results: stale } = await db
-    .prepare("SELECT id, name, deadline_date FROM scholarships WHERE status IN ('VERIFIED_OPEN','VERIFIED_UPCOMING') AND deadline_date IS NOT NULL AND deadline_date < ?")
+    .prepare(
+      `SELECT id, name, COALESCE(deadline_date, proposed_deadline) AS deadline_date FROM scholarships
+       WHERE (status IN ('VERIFIED_OPEN','VERIFIED_UPCOMING') OR cycle_state IN ('open','upcoming'))
+       AND COALESCE(deadline_date, proposed_deadline) IS NOT NULL AND COALESCE(deadline_date, proposed_deadline) < ?`,
+    )
     .bind(today())
     .all<{ id: string; name: string; deadline_date: string }>();
   for (const s of stale) await openTask(db, "deadline_passed", `deadline:${s.id}:${s.deadline_date}`, `${s.name}: deadline ${s.deadline_date} has passed.`, null, s.id);

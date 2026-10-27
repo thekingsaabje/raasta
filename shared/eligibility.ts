@@ -236,8 +236,9 @@ export function assess(s: Scholarship, reqs: Requirement[], p: Profile, today = 
         (mandatory.some((r) => !r.ruleVerified) ? " — some rules are not yet verified against the official source." : ".");
 
   let deadline: Assessment["deadline"] = { state: "unknown", date: s.deadline_date };
-  if (s.status === "VERIFIED_CLOSED" || s.status === "CANCELLED") deadline = { state: "passed", date: s.deadline_date };
-  else if (s.deadline_date) deadline = { state: s.deadline_date < today ? "passed" : "open", date: s.deadline_date };
+  const dl = s.deadline_date ?? s.proposed_deadline ?? null;
+  if (s.status === "VERIFIED_CLOSED" || s.status === "CANCELLED" || s.cycle_state === "closed") deadline = { state: "passed", date: dl };
+  else if (dl) deadline = { state: dl < today ? "passed" : "open", date: dl };
 
   return {
     scholarshipId: s.id,
