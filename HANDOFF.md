@@ -13,7 +13,7 @@
 Research evidence: cycle_state open 5 / upcoming 1 / closed 12 / unknown 14, plus proposed_deadline and a plain-English status_reason.
 0 verified rules on real records. 32 open `verify_record` tasks. Only an admin confirming in Admin → Scholarships makes a record VERIFIED_* (method `human`).
 Status sync: `node scripts/build-status-sync.mjs` → `seed/status-sync.sql` (idempotent, skips human-confirmed records).
-37 sources (incl. deadline pages registered for monitoring). 18 open review tasks (mostly `verify_record`).
+37 sources (incl. deadline pages registered for monitoring).
 Key findings: Pakistan NOT eligible for Invest Your Talent in Italy, MAECI 2026-27, DAAD STEM and DAAD Master All Disciplines.
 Italian DSU (ER.GO, DiSCo, DSU Toscana): Pakistan not on the "particularly poor countries" list → full family income/asset documents needed.
 Pipeline: `research/verification.json` → `npm.cmd run verify:build` → `seed/verification-update.sql` (idempotent, history-preserving).
