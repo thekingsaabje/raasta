@@ -245,6 +245,19 @@ describe("privacy", () => {
   });
 });
 
+describe("homepage stats", () => {
+  it("counts only real rows: test records and rejected discoveries are excluded", async () => {
+    const env = makeEnv();
+    await seedScholarship(env); // test data
+    await seedScholarship(env, { id: "real-1", is_test_data: 0 });
+    await env.DB.exec(`INSERT INTO sources (id, name, country, category, url) VALUES ('s1','S','DE','x','https://a.de');
+      INSERT INTO discoveries (id, url, host, host_tier, provider, fetched_at, extract, review_state, created_at, updated_at) VALUES
+      ('d1','https://a.de/1','a.de','listed','crawl','t','{}','NEEDS_REVIEW','t','t'), ('d2','https://a.de/2','a.de','listed','crawl','t','{}','REJECTED','t','t');`);
+    const r = await client(env).get("/stats");
+    expect(r.json).toMatchObject({ sources: 1, scholarships: 1, discoveries: 1, costFigures: 0 });
+  });
+});
+
 describe("public catalogue and reports", () => {
   it("filters scholarships and accepts error reports", async () => {
     const env = makeEnv();

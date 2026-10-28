@@ -32,7 +32,7 @@ test.describe.configure({ mode: "parallel" });
 
 test("J1 · applying from Pakistan for a Chinese Government Scholarship", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("checked against the source");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Study abroad on a scholarship");
   await signup(page, "j1");
   await page.getByRole("radio", { name: "Applying from Pakistan" }).click();
   await page.getByLabel("Highest completed qualification").selectOption("bachelor");

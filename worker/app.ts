@@ -96,6 +96,18 @@ app.get("/coverage", async (c) => {
   return c.json({ sources: sources.results, scholarships: sch.results, note: "Counts reflect only what Raasta has catalogued so far, not every scholarship that exists." });
 });
 
+// Live counts for the homepage. Real rows only (no test data, no rejected discoveries); never padded or rounded up.
+app.get("/stats", async (c) => {
+  const row = await c.env.DB.prepare(
+    `SELECT (SELECT COUNT(*) FROM sources) AS sources,
+            (SELECT COUNT(*) FROM scholarships WHERE is_test_data = 0) AS scholarships,
+            (SELECT COUNT(*) FROM discoveries WHERE review_state != 'REJECTED') AS discoveries,
+            (SELECT COUNT(*) FROM cost_references) AS costFigures`,
+  ).first<Record<string, number>>();
+  c.header("cache-control", "public, max-age=300");
+  return c.json({ ...row, asOf: now() });
+});
+
 const costLine = z.object({
   category: z.enum(COST_CATEGORIES),
   amount: z.number().min(0).max(1e9),

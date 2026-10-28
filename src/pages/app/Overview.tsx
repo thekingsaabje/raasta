@@ -62,7 +62,7 @@ export function Overview() {
             {data.nextActions.length === 0 ? <p className="muted" style={{ padding: 20 }}>Nothing pending. Track an application from any scholarship to get a checklist.</p> : data.nextActions.map((t: any, i: number) => (
               <Link key={t.id} to={t.application_id ? `/app/applications/${t.application_id}` : "/app/applications"} className="card-link row between" style={{ padding: "14px 20px", borderTop: i ? "1px solid var(--line)" : undefined, flexWrap: "nowrap" } as any}>
                 <span className="row" style={{ flexWrap: "nowrap", "--gap": "14px" } as any}>
-                  <span className="num" style={{ fontFamily: "var(--serif)", color: "var(--accent)", fontWeight: 600 }}>0{i + 1}</span>
+                  <span className="num" style={{ fontFamily: "var(--serif)", color: "var(--accent)", fontSize: 20 }}>0{i + 1}</span>
                   <span><strong style={{ fontSize: 15 }}>{t.title}</strong><br /><span className="tiny">{t.application ?? "General"} · {t.next_action ?? t.requirement_type}</span></span>
                 </span>
                 <ArrowRight size={15} color="var(--ink-3)" />
@@ -83,7 +83,7 @@ export function Overview() {
                       return (
                         <Link key={d.id} to={d.application_id ? `/app/applications/${d.application_id}` : "/app/applications"} className="card-link row between" style={{ padding: "10px 0", borderBottom: "1px solid var(--line)", flexWrap: "nowrap" } as any}>
                           <span className="row" style={{ flexWrap: "nowrap", "--gap": "12px" } as any}>
-                            <span className="num" style={{ width: 28, fontWeight: 600, fontSize: 17, fontFamily: "var(--serif)" }}>{d.date.slice(8, 10)}</span>
+                            <span className="num" style={{ width: 28, fontSize: 20, fontFamily: "var(--serif)" }}>{d.date.slice(8, 10)}</span>
                             <span><span style={{ fontWeight: 500, fontSize: 14.5 }}>{d.title}</span><br /><span className="tiny">{d.application ?? "Own task"} · {d.confirmed ? "confirmed deadline" : "not confirmed"}</span></span>
                           </span>
                           <span className={`badge ${days < 0 ? "b-bad" : days <= 14 ? "b-warn" : "b-neutral"}`}>{days < 0 ? `${-days}d overdue` : `${days}d`}</span>

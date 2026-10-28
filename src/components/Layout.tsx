@@ -17,59 +17,77 @@ export function Nav() {
   const { user, logout } = useAuth();
   const { go, path } = useRouter();
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   useEffect(() => setOpen(false), [path]);
+  useEffect(() => {
+    const on = () => setScrolled(scrollY > 12);
+    on();
+    addEventListener("scroll", on, { passive: true });
+    return () => removeEventListener("scroll", on);
+  }, []);
+  const links: [string, string][] = [
+    ["/scholarships", "Scholarships"],
+    ["/route", "Find my route"],
+    ["/costs", "Cost planner"],
+    ["/app/discover", "Discover"],
+    ["/how-it-works", "How we verify"],
+  ];
   return (
     <div className="nav-wrap">
-      <nav className="container nav" aria-label="Main" style={{ position: "relative" }}>
-        <Link to="/" className="brand"><Logo />Raasta</Link>
+      <nav className={`pill-nav ${scrolled ? "is-scrolled" : ""}`} aria-label="Main">
+        <Link to="/" className="brand"><Logo size={24} />Raasta</Link>
         <div className={`nav-links ${open ? "open" : ""}`}>
-          <Link to="/scholarships">Scholarships</Link>
-          <Link to="/costs">Cost planner</Link>
-          <Link to="/route">Find my route</Link>
-          <Link to="/how-it-works">How we verify</Link>
-          <Link to="/pricing">Pricing</Link>
-          {user?.role === "admin" && <Link to="/admin">Admin</Link>}
+          {links.map(([to, label]) => <Link key={to} to={to} aria-current={path === to ? "page" : undefined}>{label}</Link>)}
+          {user?.role === "admin" && <Link to="/admin" aria-current={path === "/admin" ? "page" : undefined}>Admin</Link>}
         </div>
         <div className="nav-right">
           {user ? (
             <>
-              <Link to="/app" className="btn btn-primary btn-sm">Dashboard</Link>
-              <button className="btn btn-ghost btn-sm icon-btn" aria-label="Sign out" title="Sign out" onClick={async () => { await logout(); go("/"); }}><LogOut size={15} /></button>
+              <Link to="/app" className="btn btn-primary btn-sm btn-pill">Dashboard</Link>
+              <button className="btn btn-ghost btn-sm icon-btn btn-pill" aria-label="Sign out" title="Sign out" onClick={async () => { await logout(); go("/"); }}><LogOut size={15} /></button>
             </>
           ) : (
             <>
-              <Link to="/login" className="btn btn-ghost btn-sm hide-sm">Log in</Link>
-              <Link to="/route" className="btn btn-primary btn-sm">Find my route</Link>
+              <Link to="/login" className="btn btn-ghost btn-sm btn-pill hide-sm">Log in</Link>
+              <Link to="/signup" className="btn btn-primary btn-sm btn-pill">Sign up</Link>
             </>
           )}
-          <button className="btn btn-ghost btn-sm icon-btn menu-btn" aria-label="Menu" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? <X size={16} /> : <Menu size={16} />}</button>
+          <button className="btn btn-ghost btn-sm icon-btn btn-pill menu-btn" aria-label="Menu" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? <X size={16} /> : <Menu size={16} />}</button>
         </div>
       </nav>
     </div>
   );
 }
 
+const FOOT: [string, [string, string][]][] = [
+  ["Product", [["/scholarships", "Scholarships"], ["/route", "Find my route"], ["/costs", "Cost planner"], ["/app/discover", "Discover"], ["/pricing", "Pricing"]]],
+  ["Trust", [["/how-it-works", "How we verify"], ["/privacy", "Privacy"]]],
+  ["Countries", [["/scholarships?country=CN", "China"], ["/scholarships?country=DE", "Germany"], ["/scholarships?country=IT", "Italy"]]],
+];
+
 export function Footer() {
   return (
-    <footer>
-      <div className="container grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))", gap: 32 }}>
-        <div className="stack" style={{ "--gap": "12px", gridColumn: "span 2" } as any}>
+    <footer className="site-foot">
+      <div className="container foot-grid">
+        <div className="stack" style={{ "--gap": "14px" } as any}>
           <div className="brand"><Logo />Raasta</div>
-          <p className="subtle" style={{ maxWidth: 380 }}>Source-backed study-abroad guidance for Pakistani students. Raasta is not a university, embassy or scholarship provider, and cannot guarantee admission, scholarships or visas.</p>
+          <p style={{ maxWidth: 360 }}>Source-backed study-abroad guidance for Pakistani students. Raasta is not a university, embassy or scholarship provider, and cannot guarantee admission, scholarships or visas.</p>
         </div>
-        <div className="stack" style={{ "--gap": "8px" } as any}>
-          <span className="label">Product</span>
-          <Link to="/scholarships">Scholarships</Link><Link to="/costs">Cost planner</Link><Link to="/pricing">Pricing</Link>
+        {FOOT.map(([title, items]) => (
+          <div key={title} className="stack" style={{ "--gap": "9px" } as any}>
+            <span className="foot-label">{title}</span>
+            {items.map(([to, label]) => <Link key={to} to={to}>{label}</Link>)}
+          </div>
+        ))}
+        <div className="stack foot-cta" style={{ "--gap": "12px" } as any}>
+          <span className="foot-label">Start your route</span>
+          <p>A few questions, then routes with the official evidence behind them. Free.</p>
+          <Link to="/route" className="btn btn-sm btn-pill btn-light">Find my route</Link>
         </div>
-        <div className="stack" style={{ "--gap": "8px" } as any}>
-          <span className="label">Trust</span>
-          <Link to="/route">Find my route</Link>
-          <Link to="/how-it-works">How we verify</Link><Link to="/privacy">Privacy</Link>
-        </div>
-        <div className="stack" style={{ "--gap": "8px" } as any}>
-          <span className="label">Countries</span>
-          <Link to="/scholarships?country=CN">China</Link><Link to="/scholarships?country=DE">Germany</Link><Link to="/scholarships?country=IT">Italy</Link>
-        </div>
+      </div>
+      <div className="container foot-bottom">
+        <span>© {new Date().getFullYear()} Raasta</span>
+        <span>Every fact links to its official source.</span>
       </div>
     </footer>
   );

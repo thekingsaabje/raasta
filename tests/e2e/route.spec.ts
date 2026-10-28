@@ -6,7 +6,7 @@ import { expect, test } from "@playwright/test";
 test("study route: adaptive questions, saved progress, results with evidence, roadmap after sign-up", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
-  await page.getByRole("link", { name: /Find my study route/ }).first().click();
+  await page.getByRole("link", { name: /Check eligibility/ }).first().click();
   await expect(page).toHaveURL(/\/route$/);
   await expect(page.getByRole("heading", { name: "Where are you right now?" })).toBeVisible();
   const next = () => page.getByRole("button", { name: /^Continue|See my study routes/ }).click();
