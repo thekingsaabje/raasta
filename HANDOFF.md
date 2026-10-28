@@ -29,6 +29,12 @@ Monitor never changes a scholarship status; change → one `source_changed` task
 - Sign-up without `next` lands on `/route`; `?next=/route` returns there and finishes a pending save.
 - Session-5 tests: 97 Vitest, 26/26 Playwright live (desktop + mobile). See REPORT.md.
 
+## Homepage redesign (LIVE 2026-10-28, version 90302306)
+- Fonts: Instrument Serif (display, one weight: use size/italics, never bold) + Geist (UI). Pill nav, dark footer.
+- `src/pages/Home.tsx`: hero, featured "looks open" cards, catalogue table with an **evidence meter** (lead/quoted/verified, never a chance of success),
+  how it works, source-name marquee (text only, "not partnered"), bento, FAQ, mint band (no fake social proof), live numbers from `GET /api/stats`.
+- Visibility checks use bottom-only margins (a negative margin on all sides broke the count-up on phones).
+
 ## Live discovery (session 6, LIVE since 2026-10-27)
 - `/app/discover`. Logic: `shared/discovery.ts` (deterministic, no LLM). API: `worker/discovery.ts`. Migration `0005_discovery.sql` applied live (backup: `backups/raasta-db-pre-discovery-2026-10-27.sql`).
 - `TAVILY_API_KEY` is set as a Worker secret (the founder's free account; the key is also in the git-ignored `.dev.vars`). CPU per search on the live site is 52–64 ms (above the 10 ms free guideline, but it completes).

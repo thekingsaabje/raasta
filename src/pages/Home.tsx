@@ -61,7 +61,7 @@ function Section({ children, className = "", id }: { children: ReactNode; classN
 
 function Rise({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
   return (
-    <motion.div className={className} initial={{ opacity: 0, y: 22, filter: "blur(6px)" }} whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }} viewport={{ once: true, margin: "-70px" }} transition={{ duration: 0.7, delay, ease: EASE }}>
+    <motion.div className={className} initial={{ opacity: 0, y: 22, filter: "blur(6px)" }} whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }} viewport={{ once: true, margin: "0px 0px -70px 0px" }} transition={{ duration: 0.7, delay, ease: EASE }}>
       {children}
     </motion.div>
   );
@@ -445,7 +445,7 @@ function MintBand() {
 
 function CountUp({ to }: { to: number }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-40px" });
+  const inView = useInView(ref, { once: true, margin: "0px 0px -40px 0px" });
   const [v, setV] = useState(0);
   useEffect(() => {
     if (!inView) return;
