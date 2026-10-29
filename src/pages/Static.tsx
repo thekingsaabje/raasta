@@ -27,7 +27,7 @@ export function HowItWorks() {
               ["NEEDS_REVIEW", "", "We haven't found the current call on the official page yet. Check the official page."],
               ["CONFLICTING_SOURCES", "", "Official sources disagree; both are kept until a reviewer resolves it."],
             ].map(([s, cy, d]) => <div key={s + cy} className="legend-row" style={{ borderTop: "1px solid var(--line)" }}><StatusBadge status={s} cycle={cy || null} /><span className="muted" style={{ fontSize: 15 }}>{d}</span></div>)}
-            <div className="legend-row" style={{ borderTop: "1px solid var(--line)" }}><span className="badge b-neutral"><FileCheck2 size={13} />Quotes re-checked</span><span className="muted" style={{ fontSize: 15 }}>Our automatic checker re-read the official page recently and found every quoted sentence still there. It does not confirm that a call is open.</span></div>
+            <div className="legend-row" style={{ borderTop: "1px solid var(--line)" }}><span className="badge b-ok"><FileCheck2 size={13} />Auto-checked</span><span className="muted" style={{ fontSize: 15 }}>Every day our free automatic checker re-reads the official page. This badge means it found every quoted sentence, and the deadline date, still there in the last two days. If the page changes, the badge drops by itself and a reviewer is asked to look. "Confirmed" still means a person checked it.</span></div>
             <div style={{ height: 18 }} />
             {[
               ["MET", "Your profile satisfies this published rule."],

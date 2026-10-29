@@ -42,6 +42,16 @@ describe("official-page quote checker", () => {
     expect((await checkScholarship(env.DB, "s1", blocked as any))?.result).toBe("unreadable");
   });
 
+  it("records whether the deadline date is on the page", async () => {
+    const env = await setup();
+    await env.DB.exec("UPDATE scholarships SET proposed_deadline = '2026-12-15' WHERE id = 's1';");
+    expect(await checkScholarship(env.DB, "s1", page("<p>Applications close on 15 December 2026.</p>") as any)).toMatchObject({ result: "matches", deadline: "found" });
+    await env.DB.exec("UPDATE scholarships SET proposed_deadline = '2026-12-20' WHERE id = 's1';");
+    expect(await checkScholarship(env.DB, "s1", page("<p>Applications close on 15 December 2026.</p>") as any)).toMatchObject({ result: "matches", deadline: "missing" });
+    await env.DB.exec("UPDATE scholarships SET proposed_deadline = NULL WHERE id = 's1';");
+    expect((await checkScholarship(env.DB, "s1", page("<p>Applications close on 15 December 2026.</p>") as any))?.deadline).toBe("none");
+  });
+
   it("skips quotes from PDFs instead of counting them as missing", async () => {
     const env = await setup();
     await seedRequirement(env, "s1-r2", "s1", { kind: "manual" }, "NEEDS_REVIEW");

@@ -32,19 +32,23 @@ const LOOKS: Record<string, { label: string; cls: string }> = {
   upcoming: { label: "Opens soon · per official page", cls: "b-info" },
   closed: { label: "Closed · per official page", cls: "b-neutral" },
 };
-const FRESH_DAYS = 14;
+// The checker runs daily; 2 days allows one missed run before the badge drops.
+const FRESH_DAYS = 2;
 
-/** The automatic checker re-read the official page recently and found our stored quotes there. */
+/** "Auto-checked": the checker re-read the official page recently and found every stored quote and the deadline date. */
 export function freshCheck(checkedAt?: string | null, check?: string | null): string | null {
   if (!checkedAt || !check) return null;
   try {
-    if (JSON.parse(check).result !== "matches") return null; // every stored quote found, not just some
+    const c = JSON.parse(check);
+    if (c.result !== "matches") return null; // every stored quote found, not just some
+    if (c.deadline === "missing") return null; // the deadline date we show was not on the page
   } catch {
     return null;
   }
   return Date.now() - Date.parse(checkedAt) <= FRESH_DAYS * 86_400_000 ? checkedAt : null;
 }
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+const checkedLabel = (iso: string) => (iso.slice(0, 10) === new Date().toISOString().slice(0, 10) ? "today" : shortDate(iso));
 export const statusExplain = (status: string) => (OPP[status] ?? OPP.UNKNOWN).explain;
 
 export function StatusBadge({ status, cycle, reason, checkedAt, check, deadline }: { status: string; method?: string | null; cycle?: string | null; reason?: string | null; checkedAt?: string | null; check?: string | null; deadline?: string | null }) {
@@ -57,8 +61,8 @@ export function StatusBadge({ status, cycle, reason, checkedAt, check, deadline 
       <span className={`badge ${looks?.cls ?? s.cls}`} title={cy !== cycle ? "The deadline on the official page has passed." : reason ?? s.explain}>
         {s.icon}{looks?.label ?? s.label}
       </span>
-      {/* The checker proves the quoted sentences are still on the page. It does not confirm the call is open. */}
-      {fresh && <span className="badge b-neutral" title={`On ${shortDate(fresh)} Raasta's automatic checker re-read the official page and found every quoted sentence still there. A reviewer hasn't signed this record off.`}><FileCheck2 size={13} />Quotes re-checked {shortDate(fresh)}</span>}
+      {/* Proves the quoted sentences and deadline are still on the official page. It is not a reviewer's confirmation. */}
+      {fresh && <span className="badge b-ok" title={`On ${shortDate(fresh)} Raasta's automatic checker re-read the official page and found every quoted sentence${deadline ? " and the deadline date" : ""} still there. A reviewer hasn't signed this record off yet.`}><FileCheck2 size={13} />Auto-checked {checkedLabel(fresh)}</span>}
     </>
   );
 }

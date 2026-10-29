@@ -90,7 +90,7 @@ export function ScholarshipDetail({ id }: { id: string }) {
           <Notice kind={s.is_test_data ? "warn" : "info"}>
             {s.is_test_data
               ? "This is a TEST record used to demonstrate the eligibility engine. It is not a real opportunity."
-              : <><strong>Taken from the official page{freshCheck(s.source_checked_at, s.source_check) ? `, re-checked automatically on ${fmtDate(s.source_checked_at)}` : ""}.</strong> Where we have the official sentence a rule or date came from, it is shown under it with a link. Some rules are short summaries, and details can change between rounds, so open the official page and confirm before you apply.</>}
+              : <><strong>Taken from the official page{freshCheck(s.source_checked_at, s.source_check) ? `, and auto-checked against it on ${fmtDate(s.source_checked_at)}` : ""}.</strong> Where we have the official sentence a rule or date came from, it is shown under it with a link. Some rules are short summaries, and details can change between rounds, so open the official page and confirm before you apply.</>}
           </Notice>
         </div>
       )}
@@ -114,7 +114,7 @@ export function ScholarshipDetail({ id }: { id: string }) {
                       <strong style={{ fontSize: 15 }}>{r.text}</strong>
                       <span className="row" style={{ "--gap": "6px", flexShrink: 0 } as any}>
                         {res && <EligBadge status={res.status} />}
-                        <span className={`badge ${r.review_status === "VERIFIED" ? "b-ok" : r.review_status === "CONFLICTING" ? "b-bad" : "b-neutral"}`}>{r.review_status === "VERIFIED" ? "Rule verified" : r.review_status === "CONFLICTING" ? "Sources conflict" : "Unverified"}</span>
+                        <span className={`badge ${r.review_status === "VERIFIED" ? "b-ok" : r.review_status === "CONFLICTING" ? "b-bad" : "b-neutral"}`}>{r.review_status === "VERIFIED" ? "Rule verified" : r.review_status === "CONFLICTING" ? "Sources conflict" : r.excerpt ? "Official quote" : "Summary"}</span>
                       </span>
                     </div>
                     {res && <div className="subtle">{res.reason} <span style={{ color: "var(--ink)" }}>Next: {res.nextAction}</span></div>}

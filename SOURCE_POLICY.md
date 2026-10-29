@@ -16,8 +16,10 @@ Forums, social media, agents and unofficial directories: **discovery only**, nev
   `proposed_deadline` and `status_reason` (plain English), with verbatim quotes fetched as raw text
   (`verification_method='agent_evidence'`). Students see "Open · per official page" (wording the founder chose on
   2026-10-29); the assessment lists these records as potential fits, never as confirmed fits.
-- Automatic quote check (`worker/quotecheck.ts`, cron): re-reads official pages and looks for every stored quote. All found
-  → "Quotes re-checked <date>" for 14 days. It proves the sentences are still there, not that a call is open; it never
+- Automatic quote check (`worker/quotecheck.ts`, cron): re-reads official pages and looks for every stored quote. Runs hourly,
+  2 records per run, so each record is re-read daily. All quotes found and the deadline date (deadline_date or
+  proposed_deadline, in common EN/DE/IT/ZH/KO formats) on the page → green "Auto-checked <date>" for 2 days (founder's
+  choice 2026-10-29, separate from "Confirmed"). It proves the sentences are still there, not that a call is open; it never
   changes a status; missing quotes open a `source_changed` review task. A passed proposed deadline displays as closed.
 - `VERIFIED_CLOSED` = official page states a passed deadline for a named cycle and no newer call exists.
   `VERIFIED_UPCOMING`/`OPEN` need current-cycle dates on the official page (API enforces a checked date for human edits).

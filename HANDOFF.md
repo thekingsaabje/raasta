@@ -83,3 +83,15 @@ New migrations: back up → rehearse on a local copy (`--persist-to .wrangler/re
 
 ## Costs
 PKR 0. Workers Free + D1 free + GitHub free + firecrawl credits used by the research agent (existing account; no new spend approved or made).
+
+## Session 8 (2026-10-29): auto-check, calendar, PDF plan (on dev)
+- Founder chose an "Auto-checked" badge, not auto-verification. `worker/quotecheck.ts` now also looks for the deadline date
+  (`dateVariants`: EN/DE/IT/numeric/ZH/KO) and stores `deadline: found|missing|none` in `source_check`. Cron is hourly
+  (`17 * * * *`): quote check 2 records/run (daily coverage); source monitor only when UTC hour % 4 == 0 (old pace).
+- Badge: green "Auto-checked today/<date>" when all quotes match and the deadline isn't missing, within 2 days (`freshCheck`).
+  Never changes status; "Confirmed" stays reviewer-only. Rule tags: "Official quote" / "Summary" instead of "Unverified".
+- `shared/calendar.ts`: Google Calendar link + .ics (all-day, 2-day alarm), no library. ApplyGuide has "Add deadline to
+  Google Calendar", "Download all dates (.ics)" and "Print or save as PDF" (print CSS, no library).
+- Researched (not added): vite-plugin-pwa (offline/install; never cache /api), HTMLRewriter for cheaper page parsing,
+  `diff` for showing page changes to reviewers, unpdf (PDF text; likely too much CPU on the free plan; run locally),
+  driver.js tour. Open scholarship datasets with open licences: none found.

@@ -49,7 +49,7 @@ test("J1 · applying from Pakistan for a Chinese Government Scholarship", async 
   await expect(row).toBeVisible();
   await row.getByRole("link", { name: /View/ }).click();
   await expect(page.getByRole("link", { name: /Official page/ })).toHaveAttribute("href", /hec\.gov\.pk|campuschina/);
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByRole("button", { name: "Saved" })).toBeVisible();
   await page.getByRole("button", { name: "Track application" }).click();
   await expect(page).toHaveURL(/\/app\/applications\//);

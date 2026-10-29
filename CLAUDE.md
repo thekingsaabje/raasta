@@ -20,8 +20,9 @@ Pakistan-first study-abroad platform (China, Germany, Italy). Read HANDOFF.md fi
   (`verification_method='human'`) or VERIFIED rules. AI/agent research is stored as evidence only: `cycle_state`
   (open/upcoming/closed/unknown), `proposed_deadline`, `status_reason`, verbatim quotes fetched as raw text.
   Those records stay NEEDS_REVIEW. Founder asked (2026-10-29) for friendlier wording: students see "Open · per official page"
-  (never "confirmed"), plus "Quotes re-checked <date>" when the free checker (`worker/quotecheck.ts`) found every stored
-  quote on the page within 14 days. The checker never changes a status. A passed proposed deadline displays as closed
+  (never "confirmed"), plus a green "Auto-checked <date>" badge (founder's choice 2026-10-29) when the free hourly checker
+  (`worker/quotecheck.ts`) found every stored quote AND the deadline date on the official page within 2 days. The badge is
+  not verification and the checker never changes a status. A passed proposed deadline displays as closed
   (`shared/cycle.ts`). Only "Open · confirmed" means a reviewer checked it.
   `scripts/build-status-sync.mjs` → `seed/status-sync.sql` applies this idempotently and skips human-confirmed records.
 - Production DB: back up first (`wrangler d1 export … --output backups/…`), rehearse on a local copy, apply idempotent SQL

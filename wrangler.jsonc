@@ -27,7 +27,7 @@
     "AI_ENABLED": "false"
   },
   // Source-freshness job. Cron times are UTC: every 4 hours at :17 (08:17, 12:17 … PKT). 6 sources per run.
-  "triggers": { "crons": ["17 */4 * * *"] },
+  "triggers": { "crons": ["17 * * * *"] },
   "observability": { "enabled": true }
   // Custom domain later: add "routes": [{ "pattern": "raasta.example", "custom_domain": true }]
 }

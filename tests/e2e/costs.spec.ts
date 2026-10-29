@@ -98,11 +98,11 @@ test("saved plan appears on the dashboard and keeps versions", async ({ page }) 
 
   await answerGermany(page);
   await page.getByRole("button", { name: "Save to dashboard" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Save" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText("Saved · version 1")).toBeVisible();
   await page.getByLabel("Programme length in months").fill("18");
   await page.getByRole("button", { name: "Save new version" }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Save" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Save", exact: true }).click();
   await expect(page.getByText("Saved · version 2")).toBeVisible();
 
   await page.goto("/app");

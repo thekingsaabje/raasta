@@ -60,7 +60,7 @@ test("student journey: sign up, profile, matches, track, tick task, writing", as
   await page.getByRole("dialog").getByRole("button", { name: "Create" }).click();
   await expect(page.getByText("coaching only", { exact: false }).first()).toBeVisible();
   await page.getByLabel("Document text").fill("My CGPA of 3.1 and my project.");
-  await page.getByRole("button", { name: "Save" }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.getByRole("button", { name: "Check" }).click();
   await expect(page.getByText("fact bank is empty", { exact: false })).toBeVisible();
   if (!isMobile) await expect(page.getByRole("button", { name: "Outline from my facts" })).toBeDisabled();

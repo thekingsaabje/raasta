@@ -1,6 +1,9 @@
 # TODO (priority order)
 
 ## Needs the founder
+- [ ] Approve deploying the Auto-checked badge + calendar reminders (on dev, not live yet). No database change needed.
+- [ ] Optional, free: switch on Cloudflare Web Analytics for the Worker in the Cloudflare dashboard (privacy-first, no key). Cookieless claim not re-checked 2026-10-29.
+- [ ] Email reminders: Resend free tier (3,000/month) needs a domain you own; Cloudflare Email to students needs Workers Paid. Both need your approval.
 - [x] Session 7 deployed to production on 2026-10-29 (migrations 0006–0007, rule fixes, Korea data, new site). Live e2e 38/38.
 - [ ] Check that the next scheduled run fills `source_checked_at` (quote checker) on live; nobody has run "Check now" in Admin yet.
 - [x] GKS-U 2027 guidelines PDF downloaded (approved 2026-10-29) and turned into evidence: seed/korea-gks-u-guidelines-2026-10-29.sql.
