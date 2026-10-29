@@ -41,4 +41,17 @@ describe("official-page quote checker", () => {
     const blocked = async () => new Response("blocked", { status: 412 });
     expect((await checkScholarship(env.DB, "s1", blocked as any))?.result).toBe("unreadable");
   });
+
+  it("skips quotes from PDFs instead of counting them as missing", async () => {
+    const env = await setup();
+    await seedRequirement(env, "s1-r2", "s1", { kind: "manual" }, "NEEDS_REVIEW");
+    await env.DB.exec("UPDATE requirements SET excerpt = 'Must be under 25 years of age', source_url = 'https://uni.example/guide.pdf' WHERE id = 's1-r2';");
+    const fetcher = async (url: string) =>
+      url.endsWith(".pdf")
+        ? new Response("%PDF-1.7", { headers: { "content-type": "application/octet-stream" } })
+        : page("<p>Applications close on 15 December 2026.</p>")();
+    expect(await checkScholarship(env.DB, "s1", fetcher as any)).toMatchObject({ result: "matches", found: 1, total: 1 });
+    const tasks = await env.DB.prepare("SELECT COUNT(*) AS n FROM review_tasks WHERE kind = 'source_changed'").first<any>();
+    expect(tasks.n).toBe(0);
+  });
 });

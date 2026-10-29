@@ -115,6 +115,10 @@ describe("eligibility engine", () => {
   it("age is computed on the rule's reference date", () => {
     expect(checkRule({ kind: "max_age", max: 35, asOf: "2027-09-01" }, { birthDate: "1991-09-02" }).status).toBe("MET"); // 35
     expect(checkRule({ kind: "max_age", max: 35, asOf: "2027-09-01" }, { birthDate: "1991-09-01" }).status).toBe("NOT_MET"); // 36
+    // GKS-U 2027: "born on or after March 1, 2002" is stored as max 24 on 2027-02-28.
+    const gks: Rule = { kind: "max_age", max: 24, asOf: "2027-02-28" };
+    expect(checkRule(gks, { birthDate: "2002-03-01" }).status).toBe("MET");
+    expect(checkRule(gks, { birthDate: "2002-02-28" }).status).toBe("NOT_MET");
   });
 
   it("an unlisted language test is UNKNOWN, not NOT_MET", () => {
