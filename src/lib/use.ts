@@ -34,6 +34,7 @@ export const COUNTRY: Record<string, { name: string; code: string }> = {
   CN: { name: "China", code: "CN" },
   DE: { name: "Germany", code: "DE" },
   IT: { name: "Italy", code: "IT" },
+  KR: { name: "South Korea", code: "KR" },
 };
 
 export const fmtPkr = (n: number) => "PKR " + Math.round(n).toLocaleString("en-PK");

@@ -11,7 +11,7 @@ import { initials } from "../components/ScholarshipCard";
 import { FUNDING_LABEL } from "../../shared/funding";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
-const TILE: Record<string, string> = { CN: "#b3261e", DE: "#1f2421", IT: "#146b3a" };
+const TILE: Record<string, string> = { CN: "#b3261e", DE: "#1f2421", IT: "#146b3a", KR: "#1d4f91" };
 const today = new Date().toISOString().slice(0, 10);
 
 /* ───────── shared bits ───────── */
@@ -90,7 +90,7 @@ function Hero({ featured }: { featured: any[] }) {
         </span>
       </h1>
       <motion.p className="h-lead" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45, duration: 0.7, ease: EASE }}>
-        Find funding in <strong>China, Germany and Italy</strong>, see which published rules you meet, plan the real cost, and follow a step-by-step plan, with every fact linked to its official source.
+        Find funding in <strong>China, Germany, Italy and South Korea</strong>, see which published rules you meet, plan the real cost, and follow a step-by-step plan, with every fact linked to its official source.
       </motion.p>
       <motion.div className="h-actions" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.7, ease: EASE }}>
         <Link to="/route" className="btn btn-primary btn-lg btn-pill"><Sparkles size={16} />Find my scholarships</Link>

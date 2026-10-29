@@ -62,7 +62,7 @@ export function Nav() {
 const FOOT: [string, [string, string][]][] = [
   ["Product", [["/scholarships", "Scholarships"], ["/route", "Find my route"], ["/costs", "Cost planner"], ["/app/discover", "Discover"], ["/pricing", "Pricing"]]],
   ["Trust", [["/how-it-works", "How we verify"], ["/privacy", "Privacy"]]],
-  ["Countries", [["/scholarships?country=CN", "China"], ["/scholarships?country=DE", "Germany"], ["/scholarships?country=IT", "Italy"]]],
+  ["Countries", [["/scholarships?country=CN", "China"], ["/scholarships?country=DE", "Germany"], ["/scholarships?country=IT", "Italy"], ["/scholarships?country=KR", "South Korea"]]],
 ];
 
 export function Footer() {

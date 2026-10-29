@@ -109,7 +109,7 @@ export function Results({ answers: a, set, refs, liveRates }: { answers: Answers
       <section className="panel panel-flush">
         <div className="panel-head"><div><h3>Proof of funds for the visa</h3><div className="tiny" style={{ marginTop: 2 }}>A requirement to show money, not an extra cost. It is not added to your totals.</div></div></div>
         {proof.length === 0 ? (
-          <div style={{ padding: 20 }}><Notice kind="warn">We have no verified proof-of-funds rule for {a.country ? { CN: "China", DE: "Germany", IT: "Italy" }[a.country] : "this country"} on file. Check the embassy or visa centre for your route before applying.</Notice></div>
+          <div style={{ padding: 20 }}><Notice kind="warn">We have no verified proof-of-funds rule for {a.country ? ({ CN: "China", DE: "Germany", IT: "Italy", KR: "South Korea" } as Record<string, string>)[a.country] : "this country"} on file. Check the embassy or visa centre for your route before applying.</Notice></div>
         ) : proof.map((r) => {
           const req = r.amount;
           return (

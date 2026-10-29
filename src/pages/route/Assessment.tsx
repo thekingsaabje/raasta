@@ -12,10 +12,10 @@ const LABEL: Record<Step, string> = {
 const JOURNEYS = [
   ["applying_from_pakistan", "I'm applying from Pakistan"],
   ["studying_in_china", "I'm already studying in China"],
-  ["studying_in_germany_italy", "I'm already studying in Germany or Italy"],
+  ["studying_in_germany_italy", "I'm already studying in Germany, Italy or Korea"],
   ["holds_scholarship", "I hold a scholarship and need a renewal or more funding"],
 ] as const;
-const COUNTRY_NAME = { CN: "China", DE: "Germany", IT: "Italy" } as const;
+const COUNTRY_NAME = { CN: "China", DE: "Germany", IT: "Italy", KR: "South Korea" } as const;
 
 export function stepsFor(p: Profile): Step[] {
   const abroad = p.journey && p.journey !== "applying_from_pakistan";
@@ -116,7 +116,7 @@ function Body({ step, p, set }: { step: Step; p: Profile; set: (fn: (p: Profile)
       return (
         <Q title="Tell us about your current studies" help="Continuing-student awards and renewals depend on your university and year.">
           {p.journey !== "studying_in_china" && (
-            <Choices label="Country you study in" value={p.currentCountry} options={[["CN", "China"], ["DE", "Germany"], ["IT", "Italy"]] as const} onPick={(v) => up({ currentCountry: v })} />
+            <Choices label="Country you study in" value={p.currentCountry} options={[["CN", "China"], ["DE", "Germany"], ["IT", "Italy"], ["KR", "South Korea"]] as const} onPick={(v) => up({ currentCountry: v })} />
           )}
           <div className="grid grid-2">
             <label className="field"><span>University</span><input className="input" value={p.currentUniversity ?? ""} onChange={(e) => up({ currentUniversity: e.target.value || undefined })} placeholder="e.g. Zhejiang University" /></label>
@@ -132,11 +132,11 @@ function Body({ step, p, set }: { step: Step; p: Profile; set: (fn: (p: Profile)
         </Q>
       );
     case "countries": {
-      const on = (c: "CN" | "DE" | "IT") => (p.targetCountries ?? []).includes(c);
+      const on = (c: "CN" | "DE" | "IT" | "KR") => (p.targetCountries ?? []).includes(c);
       return (
         <Q title="Which countries are you considering?" help="Pick one or more. Skip to see all three.">
           <div className="choice-grid">
-            {(["CN", "DE", "IT"] as const).map((c) => (
+            {(["CN", "DE", "IT", "KR"] as const).map((c) => (
               <button key={c} type="button" role="checkbox" aria-checked={on(c)} className="choice" onClick={() => up({ targetCountries: on(c) ? (p.targetCountries ?? []).filter((x) => x !== c) : [...(p.targetCountries ?? []), c] })}>
                 <span className="choice-dot" aria-hidden>{on(c) && <Check size={12} strokeWidth={3} />}</span>{COUNTRY_NAME[c]}
               </button>

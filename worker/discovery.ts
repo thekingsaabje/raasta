@@ -335,7 +335,7 @@ me.post("/discover", async (c) => {
   } catch {
     raw = undefined;
   }
-  const b = z.object({ profile: profileSchema, countries: z.array(z.enum(["CN", "DE", "IT"])).min(1).max(3) }).parse(raw);
+  const b = z.object({ profile: profileSchema, countries: z.array(z.enum(["CN", "DE", "IT", "KR"])).min(1).max(4) }).parse(raw);
   return c.json(await runDiscovery(c.env, b.profile, b.countries, user.id));
 });
 

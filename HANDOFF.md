@@ -4,7 +4,10 @@
 - Code: `C:\Users\Kingsaab\Documents\Raasta`; private repo https://github.com/thekingsaabje/raasta (work on `dev`; `main` = last live-tested release).
 - Live: **https://raasta.raasta.workers.dev** (Cloudflare account thekingsaabje@gmail.com, Worker `raasta`).
 - D1 `raasta-db` (region WNAM/US West — created there because of the local proxy; deleting/recreating in APAC was blocked by the permission classifier).
-  Migrations 0001–0004 applied. Seeded once; **never re-run seed.sql remotely.**
+  Live: migrations 0001–0005. **Ready but NOT yet applied live (deploy needs founder approval):** 0006 (source check columns),
+  0007 (KR country; table rebuild rehearsed on prod + local copies, row-for-row identical), `seed/rule-fixes-2026-10-29.sql`,
+  `seed/korea-2026-10-29.sql`. Order: backup → 0006/0007 → rule-fixes → korea → deploy → confirm asset hash.
+  Never rebuild a parent table with RENAME (rewires child FKs) and remember DROP TABLE cascades: see 0007's header. Seeded once; **never re-run seed.sql remotely.**
 - Admin on live: thekingsaabje@gmail.com (only user; promoted via D1, audit row present).
 - Backups: `backups/` (git-ignored). Latest: `raasta-db-pre-deploy-2026-10-27.sql` (before migration 0004 + status sync). Restore rehearsed into a separate local D1.
 
@@ -23,6 +26,17 @@ Pipeline: `research/verification.json` → `npm.cmd run verify:build` → `seed/
 two runs `outcome: ok`, 6 checked each (5 and 4 ok), CPU 10 ms / 38 ms, wall 8 s / 25 s, no false "changed".
 Monitor never changes a scholarship status; change → one `source_changed` task; 3 failures → `source_failing`; past deadlines → `deadline_passed`.
 
+## Session 7 (2026-10-29): student audit, checker, Korea
+- AUDIT-STUDENTS.md: five-student walk-through and what changed.
+- Free official-page checker: `worker/quotecheck.ts`, runs in the 4-hourly cron (QUOTE_CHECK_BATCH, default 5), admin
+  "check now" at `POST /api/admin/scholarships/:id/check-source`. Records date + result; never changes status; missing quotes
+  open a `source_changed` task. Badge "Open · checked 29 Oct" when quotes matched within 14 days.
+- New rule kinds `nationality_excluded`, `residence_excluded` (DAAD/MAECI Pakistan exclusions → likely not eligible).
+- Korea (KR): code everywhere; GKS undergraduate + graduate records (NEEDS_REVIEW). Pakistan eligibility/deadlines are in
+  the 2027 GKS-U guidelines PDF (not downloaded: needs founder approval). No KR cost references yet (estimate says so).
+- Libraries added (all free): @fontsource-variable/bricolage-grotesque + figtree (OFL), minisearch (MIT, catalogue
+  search), @axe-core/playwright (MPL-2.0, tests/e2e/a11y.spec.ts).
+
 ## Study route (session 5)
 - `/route` = main entry (homepage CTA, nav). UI `src/pages/Route.tsx` + `src/pages/route/*`; logic `shared/route.ts`; API `worker/route.ts`
   (`POST /api/route/evaluate` public, 60/hr/IP; `POST /api/me/roadmap` idempotent). Draft in localStorage `raasta.route.draft.v1`.
@@ -30,7 +44,8 @@ Monitor never changes a scholarship status; change → one `source_changed` task
 - Session-5 tests: 97 Vitest, 26/26 Playwright live (desktop + mobile). See REPORT.md.
 
 ## Homepage redesign (LIVE 2026-10-28, version 90302306)
-- Fonts: Instrument Serif (display, one weight: use size/italics, never bold) + Geist (UI). Pill nav, dark footer.
+- Fonts (since 2026-10-29): Bricolage Grotesque (display, weights 680–800, `var(--display)`; `--serif` is an alias) + Figtree (UI),
+  self-hosted via @fontsource-variable (OFL). Emphasis = colour + highlighter, not italics. Pill nav, dark footer.
 - `src/pages/Home.tsx`: hero, featured "looks open" cards, catalogue table with an **evidence meter** (lead/quoted/verified, never a chance of success),
   how it works, source-name marquee (text only, "not partnered"), bento, FAQ, mint band (no fake social proof), live numbers from `GET /api/stats`.
 - Visibility checks use bottom-only margins (a negative margin on all sides broke the count-up on phones).

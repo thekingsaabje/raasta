@@ -8,7 +8,7 @@ import { PLAN_CATEGORIES, plan, type PlanInput } from "../shared/planner";
 
 const RATE_URL = "https://open.er-api.com/v6/latest/PKR";
 const RATE_SOURCE = "ExchangeRate-API open access (open.er-api.com), indicative mid-market rates";
-const CURRENCIES = ["EUR", "CNY", "USD", "GBP"];
+const CURRENCIES = ["EUR", "CNY", "KRW", "USD", "GBP"];
 const MAX_AGE_MS = 12 * 3600_000;
 
 /** Returns cached rates, refreshing at most every 12 hours. Failure falls back to the cache (or nothing). */
@@ -143,7 +143,7 @@ me.post("/plans", async (c) => {
   const b = z.object({
     planId: z.string().uuid().optional(),
     title: z.string().min(1).max(160),
-    country: z.enum(["CN", "DE", "IT"]).nullable().optional(),
+    country: z.enum(["CN", "DE", "IT", "KR"]).nullable().optional(),
     applicationId: z.string().max(100).nullable().optional(),
     input: planInputSchema,
     context: contextSchema.optional(),

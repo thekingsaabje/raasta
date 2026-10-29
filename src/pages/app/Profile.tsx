@@ -62,7 +62,7 @@ export function ProfilePage() {
           {[
             ["applying_from_pakistan", "Applying from Pakistan"],
             ["studying_in_china", "Studying in China"],
-            ["studying_in_germany_italy", "Studying in Germany or Italy"],
+            ["studying_in_germany_italy", "Studying in Germany, Italy or Korea"],
             ["holds_scholarship", "Have a scholarship, need renewal or more funding"],
           ].map(([v, l]) => <button key={v} type="button" className="chip" role="radio" aria-checked={p.journey === v} aria-pressed={p.journey === v} onClick={() => set("journey", v)}>{l}</button>)}
         </div>
@@ -135,7 +135,7 @@ export function ProfilePage() {
           <Field label="Budget you can arrange (PKR)" help="A rough figure is fine"><input className="input" type="number" min={0} value={p.budgetPkr ?? ""} onChange={(e) => set("budgetPkr", num(e.target.value))} /></Field>
         </div>
         <div className="chips" role="group" aria-label="Countries">
-          {[["CN", "China"], ["DE", "Germany"], ["IT", "Italy"]].map(([c, l]) => {
+          {[["CN", "China"], ["DE", "Germany"], ["IT", "Italy"], ["KR", "South Korea"]].map(([c, l]) => {
             const on = (p.targetCountries ?? []).includes(c);
             return <button key={c} type="button" className="chip" aria-pressed={on} onClick={() => set("targetCountries", on ? p.targetCountries.filter((x: string) => x !== c) : [...(p.targetCountries ?? []), c])}>{l}</button>;
           })}

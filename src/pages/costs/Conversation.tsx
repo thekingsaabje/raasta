@@ -96,7 +96,7 @@ function Trail({ answers, steps, current, onJump }: { answers: Answers; steps: S
   const value = (s: StepId): string | null => {
     const a = answers;
     switch (s) {
-      case "destination": return a.country ? ({ CN: "China", DE: "Germany", IT: "Italy" } as const)[a.country] : null;
+      case "destination": return a.country ? ({ CN: "China", DE: "Germany", IT: "Italy", KR: "South Korea" } as const)[a.country] : null;
       case "place": return [a.city, a.university].filter(Boolean).join(", ") || null;
       case "programme": return a.level ? `${a.level === "phd" ? "PhD" : a.level[0].toUpperCase() + a.level.slice(1)}${a.programme ? ` · ${a.programme}` : ""}` : null;
       case "duration": return a.months ? `${a.months} months` : null;
@@ -210,15 +210,15 @@ function StepBody({ step, answers: a, set, refs, scholarships }: { step: StepId;
     case "destination":
       return (
         <Q title="Where do you want to study?" help="We'll use official figures for that country where we have them.">
-          <Choices label="Destination" value={a.country} options={[["CN", "China"], ["DE", "Germany"], ["IT", "Italy"]] as const} onPick={(v: Country) => set((x) => ({ ...x, country: v, display: x.display === "PKR" ? "PKR" : HOME_CURRENCY[v] }))} />
+          <Choices label="Destination" value={a.country} options={[["CN", "China"], ["DE", "Germany"], ["IT", "Italy"], ["KR", "South Korea"]] as const} onPick={(v: Country) => set((x) => ({ ...x, country: v, display: x.display === "PKR" ? "PKR" : HOME_CURRENCY[v] }))} />
         </Q>
       );
     case "place":
       return (
         <Q title="Do you know the city or university?" help="Optional. It helps you match the right official fee pages later.">
           <div className="grid grid-2">
-            <label className="field"><span>City</span><input className="input" value={a.city ?? ""} onChange={(e) => set((x) => ({ ...x, city: e.target.value }))} placeholder={`e.g. ${({ CN: "Hangzhou", DE: "Munich", IT: "Milan" } as const)[a.country ?? "DE"]}`} /></label>
-            <label className="field"><span>University</span><input className="input" value={a.university ?? ""} onChange={(e) => set((x) => ({ ...x, university: e.target.value }))} placeholder={`e.g. ${({ CN: "Zhejiang University", DE: "TU Munich", IT: "Politecnico di Milano" } as const)[a.country ?? "DE"]}`} /></label>
+            <label className="field"><span>City</span><input className="input" value={a.city ?? ""} onChange={(e) => set((x) => ({ ...x, city: e.target.value }))} placeholder={`e.g. ${({ CN: "Hangzhou", DE: "Munich", IT: "Milan", KR: "Seoul" } as const)[a.country ?? "DE"]}`} /></label>
+            <label className="field"><span>University</span><input className="input" value={a.university ?? ""} onChange={(e) => set((x) => ({ ...x, university: e.target.value }))} placeholder={`e.g. ${({ CN: "Zhejiang University", DE: "TU Munich", IT: "Politecnico di Milano", KR: "Seoul National University" } as const)[a.country ?? "DE"]}`} /></label>
           </div>
         </Q>
       );
@@ -331,6 +331,7 @@ function StepBody({ step, answers: a, set, refs, scholarships }: { step: StepId;
               DE: "Use your programme's official page. Many public German universities charge no tuition, only a semester fee; some states charge non-EU students.",
               IT: "Use your university's fee page. Italian fees often depend on family income and on whether you are a non-EU applicant.",
               CN: "Use the university's international student fee page. Fees are usually per academic year in CNY.",
+              KR: "Use the university's admissions or fee page. Korean fees are usually per semester in KRW.",
             }[a.country ?? "DE"]
           }
         >

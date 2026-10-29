@@ -150,7 +150,7 @@ a.card-link:hover { background: #fbfaf7; }
 .b-test { background: #f1e9fb; color: #6b3fa0; }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block; }
 .flag { display: inline-grid; place-items: center; min-width: 28px; height: 20px; padding: 0 5px; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; border-radius: 5px; background: var(--ink); color: #fff; }
-.flag-CN { background: #b3261e; } .flag-DE { background: #1d1d1d; } .flag-IT { background: #146b3a; }
+.flag-CN { background: #b3261e; } .flag-DE { background: #1d1d1d; } .flag-IT { background: #146b3a; } .flag-KR { background: #1d4f91; }
 
 /* Forms */
 .field { display: flex; flex-direction: column; gap: 6px; }

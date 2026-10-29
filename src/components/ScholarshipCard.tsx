@@ -5,7 +5,7 @@ import { COUNTRY, fmtDate } from "../lib/use";
 import { EligBadge, StatusBadge, TestBadge, stagger } from "./ui";
 import { FUNDING_LABEL } from "../../shared/funding";
 
-const TILE: Record<string, string> = { CN: "#b3261e", DE: "#1f2421", IT: "#146b3a" };
+const TILE: Record<string, string> = { CN: "#b3261e", DE: "#1f2421", IT: "#146b3a", KR: "#1d4f91" };
 
 export function initials(provider: string) {
   const words = provider.replace(/\(.*?\)/g, "").split(/[\s/,-]+/).filter((w) => w.length > 2 && /^[A-Z]/.test(w));

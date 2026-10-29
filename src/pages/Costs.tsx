@@ -14,7 +14,7 @@ import { STAGE_LABEL, money } from "./costs/bits";
 import { answersFrom, contextOf, emptyAnswers, toInput, type Answers, type Reference } from "./costs/model";
 
 const DRAFT_KEY = "raasta.costplan.draft.v1";
-const COUNTRY = { CN: "China", DE: "Germany", IT: "Italy" } as const;
+const COUNTRY = { CN: "China", DE: "Germany", IT: "Italy", KR: "South Korea" } as const;
 
 function loadDraft(): Answers | null {
   try {

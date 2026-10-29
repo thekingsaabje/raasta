@@ -1,4 +1,4 @@
-export type Country = "CN" | "DE" | "IT";
+export type Country = "CN" | "DE" | "IT" | "KR";
 export type Level = "bachelor" | "master" | "phd";
 
 export const OPPORTUNITY_STATUSES = [

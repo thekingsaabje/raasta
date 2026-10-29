@@ -5,7 +5,7 @@ import { EligBadge, Notice, StatusBadge, stagger } from "../../components/ui";
 import { Link } from "../../lib/router";
 import { fmtDate } from "../../lib/use";
 
-const COUNTRY = { CN: "China", DE: "Germany", IT: "Italy" } as Record<string, string>;
+const COUNTRY = { CN: "China", DE: "Germany", IT: "Italy", KR: "South Korea" } as Record<string, string>;
 const pkr = (n: number) => `PKR ${Math.round(n).toLocaleString("en-PK")}`;
 
 export const GROUPS: { fit: string; title: string; explain: string; tone: string }[] = [

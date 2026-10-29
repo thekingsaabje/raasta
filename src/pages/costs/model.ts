@@ -1,7 +1,7 @@
 // Conversation answers → planner input. Defaults come only from official references; otherwise blank (unknown).
 import type { AwardTerms, CostLine, PlanCategory, PlanInput, Source } from "../../../shared/planner";
 
-export type Country = "CN" | "DE" | "IT";
+export type Country = "CN" | "DE" | "IT" | "KR";
 export type ScholarshipSituation = "none" | "exploring" | "applied" | "partial_offer" | "full_offer" | "confirmed";
 
 export interface Reference {
@@ -44,7 +44,7 @@ export interface Answers {
 
 export const emptyAnswers = (): Answers => ({ potentialIds: [], awards: [], costs: [], funds: {}, display: "PKR", rateOverrides: {} });
 
-export const HOME_CURRENCY: Record<Country, string> = { CN: "CNY", DE: "EUR", IT: "EUR" };
+export const HOME_CURRENCY: Record<Country, string> = { CN: "CNY", DE: "EUR", IT: "EUR", KR: "KRW" };
 
 const REF_CATEGORY: Record<string, PlanCategory> = {
   tuition: "tuition", semester_fee: "fees", accommodation: "accommodation", living: "living", insurance: "insurance",

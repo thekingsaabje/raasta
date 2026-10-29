@@ -53,7 +53,7 @@ export interface RouteResult {
   note: string;
 }
 
-const COUNTRIES: Country[] = ["CN", "DE", "IT"];
+const COUNTRIES: Country[] = ["CN", "DE", "IT", "KR"];
 const MANUAL_REASON = "This condition needs a human check against the official text.";
 // Awards you apply for once a German/Italian university has admitted or enrolled you (stated on their official pages).
 const AFTER_ADMISSION = new Set(["de-deutschlandstipendium", "de-fes"]);
@@ -196,7 +196,7 @@ export function guidance(p: Profile, targets: Country[], items: FitItem[], missi
     if (c === "CN") out.push({ title: "China: CSC applications go through the Campus China portal", why: "Chinese Government Scholarships are applied for online, either through HEC nomination (Type A) or directly with a university (Type B). Each university sets its own deadline.", href: "https://www.campuschina.org" });
     if (c === "DE") out.push({ title: "Germany: check admission rules and the visa money proof early", why: "Many master's programmes use uni-assist or their own portal, and the student visa needs proof that you can pay your living costs. Read the German Missions in Pakistan page.", href: "https://pakistan.diplo.de" });
     if (c === "IT") out.push({ title: "Italy: pre-enrol on Universitaly", why: "Non-EU students pre-enrol on Universitaly before the study visa. Universities may also ask for a CIMEA statement or Declaration of Value for your degree.", href: "https://www.universitaly.it" });
-    if ((c as string) === "KR") out.push({ title: "Korea: Global Korea Scholarship (GKS)", why: "GKS is run by NIIED with an embassy track and a university track. Read the current year's guidelines on Study in Korea before choosing a track.", href: "https://www.studyinkorea.go.kr" });
+    if (c === "KR") out.push({ title: "Korea: Global Korea Scholarship (GKS)", why: "GKS is run by NIIED with an embassy track and a university track. Read the current year's guidelines on Study in Korea before choosing a track.", href: "https://www.studyinkorea.go.kr" });
   }
   out.push({ title: "Plan the real cost", why: "See costs with and without a scholarship and the cash you need before arrival.", to: "/costs" });
   return out;

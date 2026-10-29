@@ -19,7 +19,7 @@ function searchRecords(records: any[], q: string): any[] {
   return records.filter((s) => rank.has(s.id)).sort((a, b) => rank.get(a.id)! - rank.get(b.id)!);
 }
 
-const COUNTRIES = [["", "All"], ["CN", "China"], ["DE", "Germany"], ["IT", "Italy"]];
+const COUNTRIES = [["", "All"], ["CN", "China"], ["DE", "Germany"], ["IT", "Italy"], ["KR", "Korea"]];
 
 /** Searchable, filterable scholarship table. `limit` turns it into a compact preview (home page). */
 export function CatalogueTable({ limit, syncUrl }: { limit?: number; syncUrl?: boolean }) {

@@ -50,7 +50,7 @@ export function Discover() {
   useEffect(() => {
     const p = prof.data?.profile;
     if (!p) return;
-    setCountries((p.targetCountries?.length ? p.targetCountries : ["DE", "IT"]).slice(0, 3));
+    setCountries((p.targetCountries?.length ? p.targetCountries : ["DE", "IT"]).slice(0, 4));
     if (p.targetLevel) setLevel(p.targetLevel);
     if (p.targetField) setField(p.targetField);
   }, [prof.data]);
@@ -101,7 +101,7 @@ export function Discover() {
         <div className="field">
           <span>Countries</span>
           <div className="chips" role="group" aria-label="Countries">
-            {(["DE", "IT", "CN"] as const).map((c) => (
+            {(["DE", "IT", "CN", "KR"] as const).map((c) => (
               <button key={c} type="button" className="chip" aria-pressed={countries.includes(c)}
                 onClick={() => setCountries((cs) => (cs.includes(c) ? cs.filter((x) => x !== c) : [...cs, c]))}>{COUNTRY[c].name}</button>
             ))}

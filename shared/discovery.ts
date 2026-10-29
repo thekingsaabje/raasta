@@ -59,7 +59,7 @@ export function countryOfHost(host: string): Country | "PK" | null {
 
 /* ───────────────────────── Queries ───────────────────────── */
 
-const COUNTRY_NAME: Record<Country, string> = { CN: "China", DE: "Germany", IT: "Italy" };
+const COUNTRY_NAME: Record<Country, string> = { CN: "China", DE: "Germany", IT: "Italy", KR: "South Korea" };
 const LEVEL_WORD: Record<Level, string> = { bachelor: "bachelor", master: "master's", phd: "PhD" };
 
 export function buildQueries(p: Profile, country: Country): string[] {

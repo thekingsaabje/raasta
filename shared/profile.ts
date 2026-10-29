@@ -13,7 +13,7 @@ export const profileSchema = z
     birthDate: z.iso.date().optional(),
     journey: z.enum(["applying_from_pakistan", "studying_in_china", "studying_in_germany_italy", "holds_scholarship"]).optional(),
     /** Where a student already abroad is studying (used by the 'holds_scholarship' journey). */
-    currentCountry: z.enum(["CN", "DE", "IT"]).optional(),
+    currentCountry: z.enum(["CN", "DE", "IT", "KR"]).optional(),
     /** Needs to renew an existing award (annual review) rather than find a new one. */
     needsRenewal: z.boolean().optional(),
     highestCompleted: level.optional(),
@@ -32,7 +32,7 @@ export const profileSchema = z
     experienceYears: z.number().min(0).max(50).optional(),
     targetLevel: z.enum(["bachelor", "master", "phd"]).optional(),
     targetField: z.string().max(120).optional(),
-    targetCountries: z.array(z.enum(["CN", "DE", "IT"])).max(3).optional(),
+    targetCountries: z.array(z.enum(["CN", "DE", "IT", "KR"])).max(4).optional(),
     intake: z.string().max(20).optional(),
     budgetPkr: z.number().min(0).max(1e10).optional(),
     /** Language situation when there's no score yet: planning a test, or relying on an English-medium (MOI) letter. */
