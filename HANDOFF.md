@@ -4,9 +4,10 @@
 - Code: `C:\Users\Kingsaab\Documents\Raasta`; private repo https://github.com/thekingsaabje/raasta (work on `dev`; `main` = last live-tested release).
 - Live: **https://raasta.raasta.workers.dev** (Cloudflare account thekingsaabje@gmail.com, Worker `raasta`).
 - D1 `raasta-db` (region WNAM/US West — created there because of the local proxy; deleting/recreating in APAC was blocked by the permission classifier).
-  Live: migrations 0001–0005. **Ready but NOT yet applied live (deploy needs founder approval):** 0006 (source check columns),
-  0007 (KR country; table rebuild rehearsed on prod + local copies, row-for-row identical), `seed/rule-fixes-2026-10-29.sql`,
-  `seed/korea-2026-10-29.sql`. Order: backup → 0006/0007 → rule-fixes → korea → deploy → confirm asset hash.
+  Live: migrations 0001–0007 (0006/0007 applied with `--file` on 2026-10-29 and recorded in `d1_migrations` by hand),
+  plus `seed/rule-fixes-2026-10-29.sql` and `seed/korea-2026-10-29.sql`. Backup taken first:
+  `backups/raasta-db-pre-session7-2026-10-29.sql`; rehearsal on a copy: every table identical, FK check 0.
+  Worker version fa7f251a (asset index-BqYnI6qT.js). Live e2e 38/38; test users/report cleaned (1 user left).
   Never rebuild a parent table with RENAME (rewires child FKs) and remember DROP TABLE cascades: see 0007's header. Seeded once; **never re-run seed.sql remotely.**
 - Admin on live: thekingsaabje@gmail.com (only user; promoted via D1, audit row present).
 - Backups: `backups/` (git-ignored). Latest: `raasta-db-pre-deploy-2026-10-27.sql` (before migration 0004 + status sync). Restore rehearsed into a separate local D1.

@@ -1,7 +1,8 @@
 # TODO (priority order)
 
 ## Needs the founder
-- [ ] Approve the production deploy of session 7 (migrations 0006–0007, rule fixes, Korea data, new site). Steps in HANDOFF.md.
+- [x] Session 7 deployed to production on 2026-10-29 (migrations 0006–0007, rule fixes, Korea data, new site). Live e2e 38/38.
+- [ ] Check that the next scheduled run fills `source_checked_at` (quote checker) on live; nobody has run "Check now" in Admin yet.
 - [ ] Allow downloading the official 2027 GKS-U Application Guidelines PDF (Study in Korea, ~1.4 MB) to fill Korea deadlines and Pakistan eligibility.
 - [ ] Confirm records in Admin → Scholarships (all 32 are unverified until you do; "Verified fits" stays empty). Start with the ones that look open: Tsinghua freshmen (20 Nov 2026), DSU Toscana PhD (16 Nov 2026), Politecnico di Milano (15 Dec 2026), Heinrich Böll (15 Jan–1 Mar 2027). Use "Confirm all quoted rules" only after reading each quote against the official page.
 - [ ] Work through Admin → Review tasks (32 `verify_record` tasks).
