@@ -8,7 +8,7 @@
   plus `seed/rule-fixes-2026-10-29.sql` and `seed/korea-2026-10-29.sql`. Backup taken first:
   `backups/raasta-db-pre-session7-2026-10-29.sql`; rehearsal on a copy: every table identical, FK check 0.
   Worker version fa7f251a (asset index-BqYnI6qT.js). Live e2e 38/38; test users/report cleaned (1 user left).
-  **Ready, NOT yet applied live:** `seed/korea-gks-u-guidelines-2026-10-29.sql` (GKS-U 2027 evidence from the official
+  **Applied live 2026-10-29:** `seed/korea-gks-u-guidelines-2026-10-29.sql` (GKS-U 2027 evidence from the official
   guidelines PDF; rehearsed twice on a restored copy of `backups/raasta-db-pre-gks-u-2026-10-29.sql`).
 - **Restoring a backup taken after 0007:** the raw export no longer loads (scholarships is created after the tables
   that reference it, and D1 always enforces FKs). Run `node scripts/reorder-d1-dump.mjs <backup.sql> <restore.sql>`

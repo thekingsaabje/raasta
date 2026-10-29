@@ -4,7 +4,7 @@
 - [x] Session 7 deployed to production on 2026-10-29 (migrations 0006–0007, rule fixes, Korea data, new site). Live e2e 38/38.
 - [ ] Check that the next scheduled run fills `source_checked_at` (quote checker) on live; nobody has run "Check now" in Admin yet.
 - [x] GKS-U 2027 guidelines PDF downloaded (approved 2026-10-29) and turned into evidence: seed/korea-gks-u-guidelines-2026-10-29.sql.
-- [ ] Approve applying seed/korea-gks-u-guidelines-2026-10-29.sql to the live database (backup already taken).
+- [x] seed/korea-gks-u-guidelines-2026-10-29.sql applied live 2026-10-29 (checked on the live page).
 - [ ] Early December 2026: set GKS-U to closed once the University Track ends (review task open).
 - [ ] Confirm records in Admin → Scholarships (all 32 are unverified until you do; "Verified fits" stays empty). Start with the ones that look open: Tsinghua freshmen (20 Nov 2026), DSU Toscana PhD (16 Nov 2026), Politecnico di Milano (15 Dec 2026), Heinrich Böll (15 Jan–1 Mar 2027). Use "Confirm all quoted rules" only after reading each quote against the official page.
 - [ ] Work through Admin → Review tasks (32 `verify_record` tasks).
