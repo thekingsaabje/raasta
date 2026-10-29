@@ -12,6 +12,7 @@ import { generateChecklist } from "../shared/checklist";
 import { capabilities, checkDocument, coachingQuestions, DOC_KINDS, outlineFromFacts, type DocKind } from "../shared/writing";
 import { APPLICATION_STAGES, FUNDING_CLASSES, OPPORTUNITY_STATUSES, STUDENT_STATUSES, VERIFIED_STATUSES, WRITING_MODES, type Scholarship } from "../shared/types";
 import { runSourceChecks } from "./monitor";
+import { checkScholarship, runQuoteChecks } from "./quotecheck";
 import { plannerRoutes } from "./planner";
 import { routeRoutes } from "./route";
 import { discoveryRoutes } from "./discovery";
@@ -727,6 +728,15 @@ admin.patch("/scholarships/:id", async (c) => {
   }
   return c.json({ scholarship: await getScholarship(db, s.id), notified });
 });
+
+// Run the official-page quote check now for one record (or the next batch). Evidence only: never changes a status.
+admin.post("/scholarships/:id/check-source", async (c) => {
+  const r = await checkScholarship(c.env.DB, c.req.param("id"));
+  if (!r) return c.json({ error: "Not found." }, 404);
+  await audit(c.env.DB, aid(c), "source_check", "scholarship", r.id, r);
+  return c.json(r);
+});
+admin.post("/check-sources", async (c) => c.json({ results: await runQuoteChecks(c.env.DB, 6) }));
 
 // Reviewer confirms every rule of a record that carries an official quote (after reading them against the source).
 admin.post("/scholarships/:id/confirm-rules", async (c) => {

@@ -19,6 +19,8 @@ export interface RuleResult {
 
 const PROFILE_FIELD: Partial<Record<Rule["kind"], string>> = {
   nationality: "nationality",
+  nationality_excluded: "nationality",
+  residence_excluded: "current country of residence",
   target_level: "intended degree",
   degree_completed: "highest qualification",
   min_grade: "grade and grading scale",
@@ -68,6 +70,13 @@ function ageOn(birth: string, asOf: string): number {
 }
 
 type Outcome = { status: EligibilityStatus; reason: string };
+
+/** Where the student lives now, from their journey. Unknown stays unknown. */
+export function residenceOf(p: Profile): string | undefined {
+  if (p.journey === "applying_from_pakistan") return "PK";
+  if (p.journey === "studying_in_china") return "CN";
+  return p.currentCountry;
+}
 const unknown = (what: string): Outcome => ({ status: "UNKNOWN", reason: `We need your ${what} to check this.` });
 
 export function checkRule(rule: Rule, p: Profile): Outcome {
@@ -77,6 +86,20 @@ export function checkRule(rule: Rule, p: Profile): Outcome {
       return rule.allowed.includes(p.nationality)
         ? { status: "MET", reason: `Open to ${p.nationality} nationals.` }
         : { status: "NOT_MET", reason: `Nationality ${p.nationality} is not in the eligible list.` };
+
+    case "nationality_excluded":
+      if (!p.nationality) return unknown("nationality");
+      return rule.countries.includes(p.nationality)
+        ? { status: "NOT_MET", reason: `${p.nationality} is not on the published list of eligible countries.` }
+        : { status: "NEEDS_REVIEW", reason: "Check that your country is on the published list." };
+
+    case "residence_excluded": {
+      const r = residenceOf(p);
+      if (!r) return unknown("current country of residence");
+      return rule.countries.includes(r)
+        ? { status: "NOT_MET", reason: `Applicants living in ${r} can't apply: the country isn't on the provider's list.` }
+        : { status: "NEEDS_REVIEW", reason: "Check that the country you live in is on the provider's list." };
+    }
 
     case "target_level":
       if (!p.targetLevel) return unknown("intended degree level");

@@ -35,6 +35,10 @@ export const profileSchema = z
     targetCountries: z.array(z.enum(["CN", "DE", "IT"])).max(3).optional(),
     intake: z.string().max(20).optional(),
     budgetPkr: z.number().min(0).max(1e10).optional(),
+    /** Language situation when there's no score yet: planning a test, or relying on an English-medium (MOI) letter. */
+    languageStatus: z.enum(["has_result", "planning", "moi"]).optional(),
+    /** Whether the student can only go with full funding. Used to order results, never to hide them. */
+    fundingNeed: z.enum(["full_only", "partial_ok"]).optional(),
     hasExistingScholarship: z.boolean().optional(),
     existingScholarshipName: z.string().max(160).optional(),
   })

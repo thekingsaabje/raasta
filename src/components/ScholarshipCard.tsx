@@ -14,7 +14,7 @@ export function initials(provider: string) {
 
 export function deadlineText(s: any) {
   if (s.deadline_date && s.status?.startsWith("VERIFIED_")) return { main: fmtDate(s.deadline_date), sub: "Confirmed by reviewer" };
-  if (s.proposed_deadline) return { main: fmtDate(s.proposed_deadline), sub: "From official page · not yet verified" };
+  if (s.proposed_deadline) return { main: fmtDate(s.proposed_deadline), sub: "From the official page" };
   if (s.deadline_text) return { main: "Not confirmed", sub: s.deadline_text };
   return { main: "Not published", sub: "" };
 }
@@ -37,7 +37,7 @@ export function ScholarshipRow({ s, elig, onCompare, comparing }: { s: any; elig
   const d = deadlineText(s);
   return (
     <motion.div variants={stagger.item} className="trow" role="row">
-      <div className="c-main row" style={{ "--gap": "14px", flexWrap: "nowrap" } as any}>
+      <div role="cell" className="c-main row" style={{ "--gap": "14px", flexWrap: "nowrap" } as any}>
         <span className="logo-tile" style={{ background: TILE[s.country] ?? "#333" }} aria-hidden>{initials(s.provider)}</span>
         <div style={{ minWidth: 0 }}>
           <Link to={`/scholarships/${s.id}`} className="name">{s.name}</Link>
@@ -48,15 +48,15 @@ export function ScholarshipRow({ s, elig, onCompare, comparing }: { s: any; elig
           {!!s.is_test_data && <div style={{ marginTop: 6 }}><TestBadge /></div>}
         </div>
       </div>
-      <div className="c-fund"><span className={`fund ${fc === "unknown" ? "unknown" : ""}`}>{FUNDING_LABEL[fc]}</span></div>
-      <div className="c-dead"><div className="num" style={{ fontSize: 14, fontWeight: 500 }}>{d.main}</div>{d.sub && <div className="tiny clamp1" title={d.sub}>{d.sub}</div>}</div>
-      <div className="c-status">{elig ? <EligBadge status={elig} /> : <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} />}</div>
-      <div className="c-meta">
-        {elig ? <EligBadge status={elig} /> : <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} />}
+      <div role="cell" className="c-fund"><span className={`fund ${fc === "unknown" ? "unknown" : ""}`}>{FUNDING_LABEL[fc]}</span></div>
+      <div role="cell" className="c-dead"><div className="num" style={{ fontSize: 14, fontWeight: 500 }}>{d.main}</div>{d.sub && <div className="tiny clamp1" title={d.sub}>{d.sub}</div>}</div>
+      <div role="cell" className="c-status">{elig ? <EligBadge status={elig} /> : <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} checkedAt={s.source_checked_at} check={s.source_check} />}</div>
+      <div role="cell" className="c-meta">
+        {elig ? <EligBadge status={elig} /> : <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} checkedAt={s.source_checked_at} check={s.source_check} />}
         <span className={`fund ${fc === "unknown" ? "unknown" : ""}`} style={{ fontSize: 13 }}>{FUNDING_LABEL[fc]}</span>
         <span className="tiny">Deadline: {d.main}</span>
       </div>
-      <div className="c-act row" style={{ "--gap": "6px", justifyContent: "flex-end", flexWrap: "nowrap" } as any}>
+      <div role="cell" className="c-act row" style={{ "--gap": "6px", justifyContent: "flex-end", flexWrap: "nowrap" } as any}>
         {onCompare && (
           <button className={`btn btn-sm icon-btn ${comparing ? "btn-primary" : "btn-soft"}`} aria-pressed={comparing} aria-label={`${comparing ? "Remove" : "Add"} ${s.name} ${comparing ? "from" : "to"} comparison`} title="Compare" onClick={onCompare}>
             {comparing ? <Check size={15} /> : <Plus size={15} />}

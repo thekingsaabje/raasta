@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { ArrowLeft, Bookmark, BookmarkCheck, ExternalLink, Flag, Plus } from "lucide-react";
 import { Page } from "../components/Layout";
-import { EligBadge, Modal, Notice, Reveal, Skeleton, StatusBadge, TestBadge, useToast } from "../components/ui";
+import { EligBadge, freshCheck, Modal, Notice, Reveal, Skeleton, StatusBadge, TestBadge, useToast } from "../components/ui";
 import { COUNTRY, fmtDate, useApi } from "../lib/use";
 import { Link, useRouter } from "../lib/router";
 import { useAuth } from "../lib/auth";
 import { api } from "../lib/api";
 import { FUNDING_LABEL } from "../../shared/funding";
+import { ApplyGuide } from "../components/ApplyGuide";
 
 const SCOPE: Record<string, [string, string]> = {
   scholarship_eligibility: ["Eligibility to apply", "Rules that decide whether you can apply for this award."],
@@ -71,7 +72,7 @@ export function ScholarshipDetail({ id }: { id: string }) {
           </div>
           <h1 style={{ maxWidth: 860 }}>{s.name}</h1>
           <div className="row" style={{ "--gap": "8px" } as any}>
-            <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} />
+            <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} checkedAt={s.source_checked_at} check={s.source_check} />
             {!!s.is_test_data && <TestBadge />}
             {assess.data && <EligBadge status={assess.data.assessment.overall} prefix="You" />}
           </div>
@@ -86,10 +87,10 @@ export function ScholarshipDetail({ id }: { id: string }) {
 
       {!verified && (
         <div style={{ marginBottom: 20 }}>
-          <Notice kind="warn">
+          <Notice kind={s.is_test_data ? "warn" : "info"}>
             {s.is_test_data
               ? "This is a TEST record used to demonstrate the eligibility engine. It is not a real opportunity."
-              : <><strong>Preliminary lead — not yet verified.</strong> {s.status_reason ?? "A Raasta reviewer hasn't confirmed the current call yet."} Don't rely on the dates or rules below until you've checked the official page.</>}
+              : <><strong>Taken from the official page{freshCheck(s.source_checked_at, s.source_check) ? `, re-checked automatically on ${fmtDate(s.source_checked_at)}` : ""}.</strong> Every date and rule below is quoted word for word from the provider's own page. Rules can change between rounds, so open the official page and confirm before you apply.</>}
           </Notice>
         </div>
       )}
@@ -100,6 +101,7 @@ export function ScholarshipDetail({ id }: { id: string }) {
           {assess.data && (
             <div className="sunk"><strong style={{ fontSize: 14.5 }}>{assess.data.assessment.summary}</strong><div className="subtle" style={{ marginTop: 4 }}>{assess.data.assessment.note}</div></div>
           )}
+          {!s.is_test_data && <ApplyGuide s={s} reqs={data.requirements} />}
           {data.requirements.length === 0 && <div className="panel"><p className="muted">No requirements recorded yet. Use the official page.</p></div>}
           {groups.map(([scope, reqs]) => (
             <section key={scope} className="panel panel-flush">
@@ -136,17 +138,18 @@ export function ScholarshipDetail({ id }: { id: string }) {
           <p className="subtle" style={{ marginTop: 8 }}>{s.funding_summary ?? "Not recorded."}</p>
           <div className="divider" style={{ margin: "18px 0" }} />
           <dl className="kv">
-            <dt>Levels</dt><dd>{(s.levels ?? []).join(", ") || "—"}</dd>
+            <dt>Levels</dt><dd>{(s.levels ?? []).map((l: string) => ({ bachelor: "Bachelor's", master: "Master's", phd: "PhD" } as Record<string, string>)[l] ?? l).join(", ") || "—"}</dd>
             <dt>Applicants</dt><dd>{s.applicant_type === "new" ? "New applicants" : s.applicant_type === "continuing" ? "Continuing students" : "New & continuing"}</dd>
             <dt>Route</dt><dd>{s.application_route ?? "—"}</dd>
-            <dt>Deadline</dt><dd>{s.deadline_date && verified ? <><span className="num">{fmtDate(s.deadline_date)}</span><div className="tiny">confirmed by a reviewer</div></> : s.proposed_deadline ? <><span className="num">{fmtDate(s.proposed_deadline)}</span><div className="tiny">from the official page · not yet verified</div></> : s.deadline_text ?? "Not published"}</dd>
+            <dt>Deadline</dt><dd>{s.deadline_date && verified ? <><span className="num">{fmtDate(s.deadline_date)}</span><div className="tiny">confirmed by a reviewer</div></> : s.proposed_deadline ? <><span className="num">{fmtDate(s.proposed_deadline)}</span><div className="tiny">from the official page</div></> : s.deadline_text ?? "Not published"}</dd>
             <dt>Official page shows</dt><dd>{{ open: "Applications open", upcoming: "Opens later", closed: "Round closed", unknown: "No current call found" }[s.cycle_state as string] ?? "—"}{!verified && <div className="tiny">research evidence, not confirmation</div>}</dd>
             <dt>Academic year</dt><dd>{s.academic_year ?? "—"}</dd>
             <dt>Retrieved</dt><dd>{fmtDate(s.retrieved_at)}</dd>
             <dt>Verified</dt><dd>{verified && s.last_verified_at ? <>{fmtDate(s.last_verified_at)}<div className="tiny">by a Raasta reviewer</div></> : "Not yet"}</dd>
             <dt>Record</dt><dd>Version {s.version}</dd>
           </dl>
-          {s.evidence_note && <><div className="divider" style={{ margin: "18px 0" }} /><p className="tiny"><strong>Research note.</strong> {s.evidence_note}</p></>}
+          {/* Internal research notes are for reviewers; students get the plain-English status reason above. */}
+          {s.evidence_note && user?.role === "admin" && <><div className="divider" style={{ margin: "18px 0" }} /><p className="tiny"><strong>Research note (admins only).</strong> {s.evidence_note}</p></>}
         </aside>
       </div>
 

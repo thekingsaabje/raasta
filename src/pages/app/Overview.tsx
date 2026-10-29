@@ -121,7 +121,7 @@ export function Overview() {
           {data.opportunities.length === 0 ? <p className="muted" style={{ padding: 20 }}>{noProfile ? "Complete your profile to see awards that fit." : "Nothing new that fits your profile right now."}</p> : data.opportunities.map((s: any) => (
             <Link key={s.id} to={`/scholarships/${s.id}`} className="card-link stack" style={{ padding: "12px 20px", borderTop: "1px solid var(--line)", "--gap": "6px" } as any}>
               <span style={{ fontWeight: 500, fontSize: 14.5 }}>{s.name}</span>
-              <span className="row" style={{ "--gap": "6px" } as any}><EligBadge status={s.overall} /><StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} /><span className="tiny">{COUNTRY[s.country]?.name} · {FUNDING_LABEL[(s.funding_class ?? "unknown") as keyof typeof FUNDING_LABEL]}</span></span>
+              <span className="row" style={{ "--gap": "6px" } as any}><EligBadge status={s.overall} /><StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} checkedAt={s.source_checked_at} check={s.source_check} /><span className="tiny">{COUNTRY[s.country]?.name} · {FUNDING_LABEL[(s.funding_class ?? "unknown") as keyof typeof FUNDING_LABEL]}</span></span>
             </Link>
           ))}
         </section>

@@ -297,7 +297,7 @@ function Scholarships() {
             {data.scholarships.map((s: any) => (
               <tr key={s.id}>
                 <td><strong>{s.name}</strong> {!!s.is_test_data && <TestBadge />}<div className="subtle">{s.country} · {s.provider}</div></td>
-                <td><StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} /></td>
+                <td><StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} checkedAt={s.source_checked_at} check={s.source_check} /></td>
                 <td>{s.verified_rules}/{s.rule_count}</td>
                 <td>{fmtDate(s.updated_at)} · v{s.version}</td>
                 <td><button className="btn btn-soft btn-sm" onClick={() => open(s)}>Review</button></td>
@@ -311,7 +311,7 @@ function Scholarships() {
           <div className="stack">
             <div className="sunk stack" style={{ "--gap": "6px" } as any}>
               <div className="label">Research evidence (not confirmation)</div>
-              <div className="row" style={{ "--gap": "8px" } as any}><StatusBadge status={edit.status} cycle={edit.cycle_state} reason={edit.status_reason} /><span className="tiny">Official page shows: {edit.cycle_state ?? "unknown"}{edit.proposed_deadline ? ` · proposed deadline ${edit.proposed_deadline}` : ""}</span></div>
+              <div className="row" style={{ "--gap": "8px" } as any}><StatusBadge status={edit.status} cycle={edit.cycle_state} reason={edit.status_reason} checkedAt={edit.source_checked_at} check={edit.source_check} /><span className="tiny">Official page shows: {edit.cycle_state ?? "unknown"}{edit.proposed_deadline ? ` · proposed deadline ${edit.proposed_deadline}` : ""}</span></div>
               {edit.status_reason && <div className="subtle">{edit.status_reason}</div>}
               {edit.evidence_note && <div className="tiny">{edit.evidence_note}</div>}
               <a href={edit.official_url} target="_blank" rel="noopener noreferrer" className="subtle">Open official source and check it yourself <ExternalLink size={11} style={{ display: "inline" }} /></a>

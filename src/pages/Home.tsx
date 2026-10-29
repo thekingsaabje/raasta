@@ -93,15 +93,15 @@ function Hero({ featured }: { featured: any[] }) {
         Find funding in <strong>China, Germany and Italy</strong>, see which published rules you meet, plan the real cost, and follow a step-by-step plan, with every fact linked to its official source.
       </motion.p>
       <motion.div className="h-actions" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.7, ease: EASE }}>
-        <a href="#scholarships" className="btn btn-primary btn-lg btn-pill"><Sparkles size={16} />Explore scholarships</a>
-        <Link to="/route" className="btn btn-ghost btn-lg btn-pill btn-arrow">Check eligibility <ArrowRight size={16} /></Link>
+        <Link to="/route" className="btn btn-primary btn-lg btn-pill"><Sparkles size={16} />Find my scholarships</Link>
+        <a href="#scholarships" className="btn btn-ghost btn-lg btn-pill btn-arrow">Browse all awards <ArrowRight size={16} /></a>
       </motion.div>
 
       <div className="h-feature-row">
         {featured.map((s, i) => (
           <motion.div key={s.id} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 + i * 0.08, duration: 0.6, ease: EASE }}>
             <Link to={`/scholarships/${s.id}`} className="h-feature">
-              <span className="tag">Looks open · not verified</span>
+              <span className="tag">Open · per official page</span>
               <span className="h-tile" style={{ background: TILE[s.country] ?? "#333" }} aria-hidden>{initials(s.provider)}</span>
               <span style={{ minWidth: 0 }}>
                 <strong className="clamp1" style={{ display: "block", fontSize: 14.5 }}>{s.name}</strong>
@@ -184,10 +184,10 @@ function Catalogue({ all }: { all: any[] | null }) {
               <button key={c.key} className={`h-chip ${c.mint ? "mint" : ""}`} aria-pressed={chip === c.key} onClick={() => setChip(c.key)}>{c.label}</button>
             ))}
           </div>
-          <div role="table" aria-label="Scholarships">
-            <div className="h-thead" role="row">
-              <span role="columnheader">Scholarship</span><span role="columnheader">Funding</span><span role="columnheader">Conditions</span>
-              <span role="columnheader" title="How well-checked the record is, never your chances">Evidence</span><span role="columnheader" style={{ textAlign: "right" }}>Actions</span>
+          <div role="list" aria-label="Scholarships">
+            <div className="h-thead" aria-hidden="true">
+              <span>Scholarship</span><span>Funding</span><span>Conditions</span>
+              <span title="How well-checked the record is, never your chances">Evidence</span><span style={{ textAlign: "right" }}>Actions</span>
             </div>
             {!all && Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-row"><div className="skel" style={{ height: 30, gridColumn: "1 / -1" }} /></div>)}
             {all && rows.length === 0 && <p className="muted" style={{ padding: 24, textAlign: "center", borderTop: "1px solid var(--line)" }}>Nothing matches yet. Try another filter, or <Link to="/app/discover">search official pages live</Link>.</p>}
@@ -195,10 +195,10 @@ function Catalogue({ all }: { all: any[] | null }) {
               {rows.map((s, i) => {
                 const f = fundingAmount(s);
                 return (
-                  <motion.div key={s.id} layout="position" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.35, delay: i * 0.025, ease: EASE }}>
+                  <motion.div role="listitem" key={s.id} layout="position" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.35, delay: i * 0.025, ease: EASE }}>
                     {i === 4 && <Promo to="/route" icon={<RouteIcon size={17} />} title="Not sure which of these fits you?" sub="Answer a few questions and get your routes, with the official evidence for each." cta="Find my route" />}
                     {i === 8 && <Promo to="/costs" icon={<Wallet size={17} />} title="Know the real cost before you apply" sub="Tuition, living, visa and deposits from official figures, in PKR." cta="Plan costs" />}
-                    <div className="h-row" role="row">
+                    <div className="h-row">
                       <div className="c1 row" style={{ "--gap": "12px", flexWrap: "nowrap" } as any}>
                         <span className="h-tile" style={{ background: TILE[s.country] ?? "#333" }} aria-hidden>{initials(s.provider)}</span>
                         <div style={{ minWidth: 0 }}>

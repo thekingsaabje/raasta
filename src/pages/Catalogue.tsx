@@ -7,7 +7,17 @@ import { Empty, EligBadge, Modal, Notice, Skeleton, StatusBadge, stagger } from 
 import { useApi, COUNTRY } from "../lib/use";
 import { Link, useRouter } from "../lib/router";
 import { useAuth } from "../lib/auth";
+import MiniSearch from "minisearch";
 import { FUNDING_LABEL } from "../../shared/funding";
+
+/** Typo-tolerant, prefix search over the loaded records ("daad scholarsip", "politecnico milan"). */
+function searchRecords(records: any[], q: string): any[] {
+  if (!q.trim()) return records;
+  const ms = new MiniSearch({ fields: ["name", "provider", "country_name", "funding_summary", "application_route"], storeFields: [], searchOptions: { prefix: true, fuzzy: 0.2, combineWith: "AND", boost: { name: 3, provider: 2 } } });
+  ms.addAll(records.map((s) => ({ ...s, country_name: COUNTRY[s.country]?.name ?? s.country })));
+  const rank = new Map(ms.search(q).map((r, i) => [r.id, i]));
+  return records.filter((s) => rank.has(s.id)).sort((a, b) => rank.get(a.id)! - rank.get(b.id)!);
+}
 
 const COUNTRIES = [["", "All"], ["CN", "China"], ["DE", "Germany"], ["IT", "Italy"]];
 
@@ -40,11 +50,11 @@ export function CatalogueTable({ limit, syncUrl }: { limit?: number; syncUrl?: b
 
   // The status filter maps to: reviewer-confirmed, a research cycle ("cycle:open"), or a stored status.
   const statusParams = status === "confirmed" ? { confirmed: "1" } : status.startsWith("cycle:") ? { cycle: status.slice(6), status: "NEEDS_REVIEW" } : { status };
-  const qs = new URLSearchParams(Object.entries({ q: debounced, country, level, applicant, ...statusParams }).filter(([, v]) => v)).toString();
+  const qs = new URLSearchParams(Object.entries({ country, level, applicant, ...statusParams }).filter(([, v]) => v)).toString();
   const { data, loading, error } = useApi<{ scholarships: any[] }>(`/scholarships${qs ? "?" + qs : ""}`);
   const elig = useApi<{ assessments: any[] }>(user ? "/me/assessments" : null);
   const eligMap = useMemo(() => Object.fromEntries((elig.data?.assessments ?? []).map((a) => [a.scholarship.id, a.assessment.overall])), [elig.data]);
-  const all = (data?.scholarships ?? []).filter((s) => !(hideTest && s.is_test_data) && (!funding || (s.funding_class ?? "unknown") === funding));
+  const all = useMemo(() => searchRecords((data?.scholarships ?? []).filter((s) => !(hideTest && s.is_test_data) && (!funding || (s.funding_class ?? "unknown") === funding)), debounced), [data, hideTest, funding, debounced]);
   const list = limit ? all.slice(0, limit) : all;
   const compared = picked;
   const toggle = (s: any) => setPicked((c) => (c.some((x) => x.id === s.id) ? c.filter((x) => x.id !== s.id) : c.length >= 3 ? c : [...c, s]));
@@ -75,8 +85,8 @@ export function CatalogueTable({ limit, syncUrl }: { limit?: number; syncUrl?: b
           </select>
           <select className="input" aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">Any status</option><option value="confirmed">Confirmed by reviewer</option>
-            <option value="cycle:open">Looks open (not yet verified)</option><option value="cycle:upcoming">Looks upcoming (not yet verified)</option>
-            <option value="cycle:closed">Looks closed</option><option value="cycle:unknown">Needs verification</option><option value="CONFLICTING_SOURCES">Conflicting information</option>
+            <option value="cycle:open">Open (per official page)</option><option value="cycle:upcoming">Opens soon (per official page)</option>
+            <option value="cycle:closed">Closed (per official page)</option><option value="cycle:unknown">Status to be confirmed</option><option value="CONFLICTING_SOURCES">Conflicting information</option>
           </select>
           {filtersOn && <button className="btn btn-link btn-sm" onClick={() => { setLevel(""); setApplicant(""); setFunding(""); setStatus(""); }}>Reset</button>}
           <label className="row subtle" style={{ "--gap": "7px", marginLeft: "auto" } as any}>
@@ -94,7 +104,7 @@ export function CatalogueTable({ limit, syncUrl }: { limit?: number; syncUrl?: b
             <p className="muted">Try fewer filters. A missing award doesn't mean it doesn't exist. Our catalogue is still growing.</p>
           </Empty>
         ) : (
-          <motion.div variants={stagger.container} initial="hidden" animate="show" key={qs + hideTest + funding}>
+          <motion.div variants={stagger.container} initial="hidden" animate="show" key={qs + hideTest + funding + debounced}>
             {list.map((s) => <ScholarshipRow key={s.id} s={s} elig={eligMap[s.id]} onCompare={() => toggle(s)} comparing={compare.includes(s.id)} />)}
           </motion.div>
         )}
@@ -124,7 +134,7 @@ export function CatalogueTable({ limit, syncUrl }: { limit?: number; syncUrl?: b
             <tbody>
               {[
                 ["Country", (s: any) => COUNTRY[s.country]?.name],
-                ["Verification", (s: any) => <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} />],
+                ["Verification", (s: any) => <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} checkedAt={s.source_checked_at} check={s.source_check} />],
                 ["Your eligibility", (s: any) => (eligMap[s.id] ? <EligBadge status={eligMap[s.id]} /> : user ? "—" : <Link to="/route">Check my fit</Link>)],
                 ["Levels", (s: any) => (s.levels ?? []).join(", ") || "—"],
                 ["Funding type", (s: any) => FUNDING_LABEL[(s.funding_class ?? "unknown") as keyof typeof FUNDING_LABEL]],

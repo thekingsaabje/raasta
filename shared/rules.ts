@@ -7,6 +7,8 @@ const forLevels = { forLevels: z.array(level).min(1).optional() };
 
 export const ruleSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("nationality"), allowed: z.array(z.string().regex(/^[A-Z]{2}$/)).min(1), ...forLevels }),
+  z.object({ kind: z.literal("nationality_excluded"), countries: z.array(z.string().regex(/^[A-Z]{2}$/)).min(1), ...forLevels }),
+  z.object({ kind: z.literal("residence_excluded"), countries: z.array(z.string().regex(/^[A-Z]{2}$/)).min(1), ...forLevels }),
   z.object({ kind: z.literal("target_level"), levels: z.array(level).min(1), ...forLevels }),
   z.object({ kind: z.literal("degree_completed"), level: z.enum(["intermediate", "bachelor", "master", "phd"]), ...forLevels }),
   z.object({ kind: z.literal("min_grade"), scale: z.enum(["4", "5", "100", "german"]), min: z.number().positive(), ...forLevels }),

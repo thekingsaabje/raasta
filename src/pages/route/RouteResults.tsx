@@ -9,8 +9,8 @@ const COUNTRY = { CN: "China", DE: "Germany", IT: "Italy" } as Record<string, st
 const pkr = (n: number) => `PKR ${Math.round(n).toLocaleString("en-PK")}`;
 
 export const GROUPS: { fit: string; title: string; explain: string; tone: string }[] = [
-  { fit: "VERIFIED_FIT", title: "Verified fits", explain: "A Raasta reviewer confirmed the current call, and you meet every confirmed rule.", tone: "b-ok" },
-  { fit: "POTENTIAL_FIT", title: "Potential fits — preliminary leads", explain: "Nothing we checked rules you out, but a reviewer hasn't confirmed these records yet. Check each official page before relying on it.", tone: "b-warn" },
+  { fit: "VERIFIED_FIT", title: "Confirmed fits", explain: "A Raasta reviewer confirmed the current call, and you meet every confirmed rule.", tone: "b-ok" },
+  { fit: "POTENTIAL_FIT", title: "Potential fits", explain: "Nothing in the official text rules you out. Open each official page and confirm the deadline before you apply.", tone: "b-ok" },
   { fit: "NEEDS_CONFIRMATION", title: "Needs confirmation", explain: "Some information is missing, or a rule needs a human decision (for example how your grades compare).", tone: "b-neutral" },
   { fit: "LIKELY_INELIGIBLE", title: "Likely not eligible — needs confirmation", explain: "The official text appears to rule you out (quoted below), but a reviewer hasn't confirmed the rule yet.", tone: "b-bad" },
   { fit: "NOT_ELIGIBLE", title: "Not eligible", explain: "A reviewer-confirmed rule rules you out.", tone: "b-bad" },
@@ -32,7 +32,7 @@ export function RouteResults({ data, selected, toggle, onEdit, onPlan, onSave, s
   return (
     <div className="stack" style={{ "--gap": "26px" } as any}>
       <div className="row between">
-        <p className="muted" style={{ maxWidth: 720 }}>{data.note} Records Raasta hasn't verified are labelled as preliminary leads.</p>
+        <p className="muted" style={{ maxWidth: 720 }}>{data.note} Every match links to the official page it was taken from.</p>
         <button className="btn btn-ghost btn-sm" onClick={onEdit}><Pencil size={14} />Edit answers</button>
       </div>
       {data.missingProfile.length > 0 && <Notice kind="info"><span>To sharpen this, add {data.missingProfile.join(", ")}. <button className="btn-link" style={{ background: "none", border: 0, padding: 0, cursor: "pointer", textDecoration: "underline", font: "inherit" }} onClick={onEdit}>Edit answers</button></span></Notice>}
@@ -77,15 +77,10 @@ export function RouteResults({ data, selected, toggle, onEdit, onPlan, onSave, s
       {/* Matches grouped by fit */}
       {GROUPS.map((g) => {
         const items = data.items.filter((i: any) => i.fit === g.fit);
-        if (g.fit !== "VERIFIED_FIT" && items.length === 0) return null;
+        if (items.length === 0) return null;
         return (
           <section key={g.fit} className="panel panel-flush" aria-label={g.title}>
             <div className="panel-head"><div><h3>{g.title} <span className="num tiny">({items.length})</span></h3><div className="tiny" style={{ marginTop: 2 }}>{g.explain}</div></div></div>
-            {items.length === 0 && (
-              <div style={{ padding: 20 }} className="muted">
-                No verified fits yet. No record has been confirmed by a Raasta reviewer so far, so everything below is a preliminary lead. This is the honest answer, not a gap in your profile.
-              </div>
-            )}
             {items.map((i: any) => (
               <div key={i.id} style={{ borderTop: "1px solid var(--line)" }}>
                 <div className="row between" style={{ padding: "14px 20px", alignItems: "flex-start" }}>
@@ -95,10 +90,11 @@ export function RouteResults({ data, selected, toggle, onEdit, onPlan, onSave, s
                       <Link to={`/scholarships/${i.id}`} style={{ fontWeight: 600, fontSize: 15 }}>{i.name}</Link>
                     </div>
                     <div className="row" style={{ "--gap": "6px" } as any}>
-                      <StatusBadge status={i.status} cycle={i.cycleState} reason={i.statusReason} />
+                      <StatusBadge status={i.status} cycle={i.cycleState} reason={i.statusReason} checkedAt={i.sourceCheckedAt} check={i.sourceCheck} />
                       {i.deadline.date && <span className="tiny num">Deadline {fmtDate(i.deadline.date)} · {i.deadline.confirmed ? "confirmed" : "not confirmed"}</span>}
                       <span className="tiny">{i.met.length} met · {i.notMet.length} not met · {i.missing.length} missing · {i.review.length} to check</span>
                     </div>
+                    {i.timing && <span className="tiny row" style={{ "--gap": "5px", color: "var(--warn-ink, var(--ink-2))" } as any}><Info size={12} />{i.timing}</span>}
                   </div>
                   <div className="row" style={{ "--gap": "6px", flexShrink: 0 } as any}>
                     {g.fit !== "CLOSED" && g.fit !== "NOT_ELIGIBLE" && (
@@ -122,7 +118,8 @@ export function RouteResults({ data, selected, toggle, onEdit, onPlan, onSave, s
           {data.nextActions.map((n: any) => (
             <div key={n.title} className="row" style={{ alignItems: "flex-start", flexWrap: "nowrap", "--gap": "10px" } as any}>
               <Info size={16} style={{ flexShrink: 0, marginTop: 3, color: "var(--brand-2)" }} />
-              <div><strong style={{ fontSize: 15 }}>{n.to ? <Link to={n.to}>{n.title}</Link> : n.title}</strong><div className="tiny">{n.why}</div></div>
+              <div><strong style={{ fontSize: 15 }}>{n.to ? <Link to={n.to}>{n.title}</Link> : n.title}</strong><div className="tiny">{n.why}</div>
+                {n.href && <a className="tiny" href={n.href} target="_blank" rel="noopener noreferrer">Official site: {new URL(n.href).hostname.replace(/^www./, "")} <ExternalLink size={11} style={{ display: "inline" }} /></a>}</div>
             </div>
           ))}
         </div>

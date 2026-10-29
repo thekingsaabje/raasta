@@ -30,6 +30,10 @@ export interface FitItem {
   notMet: RuleResult[];
   missing: RuleResult[];
   review: RuleResult[];
+  /** Plain-English timing caveat, e.g. "apply after you're admitted". */
+  timing: string | null;
+  sourceCheckedAt: string | null;
+  sourceCheck: string | null;
 }
 
 export interface RouteSummary {
@@ -38,16 +42,35 @@ export interface RouteSummary {
   barriers: string[];
 }
 
+/** A guidance step. `to` is a Raasta page, `href` an official site. Procedures only: no fees or amounts here. */
+export interface NextAction { title: string; why: string; to?: string; href?: string }
+
 export interface RouteResult {
   items: FitItem[];
   routes: RouteSummary[];
-  nextActions: { title: string; why: string; to?: string }[];
+  nextActions: NextAction[];
   missingProfile: string[];
   note: string;
 }
 
 const COUNTRIES: Country[] = ["CN", "DE", "IT"];
 const MANUAL_REASON = "This condition needs a human check against the official text.";
+// Awards you apply for once a German/Italian university has admitted or enrolled you (stated on their official pages).
+const AFTER_ADMISSION = new Set(["de-deutschlandstipendium", "de-fes"]);
+const ABROAD = new Set(["studying_in_china", "studying_in_germany_italy", "holds_scholarship"]);
+
+// Students who need full funding see full awards first; everyone else sees the soonest deadline first.
+const fundRank = (i: FitItem, p: Profile) => (p.fundingNeed === "full_only" ? (i.fundingClass === "full" ? 0 : i.fundingClass === "unknown" ? 1 : 2) : 0);
+const soonest = (i: FitItem) => (i.deadline.date ? Date.parse(i.deadline.date) : Number.MAX_SAFE_INTEGER);
+
+function timingOf(s: Scholarship, p: Profile): string | null {
+  const abroad = !!p.journey && ABROAD.has(p.journey);
+  if (abroad && s.applicant_type === "new") return "Meant for new applicants. Relevant only if you apply for your next degree.";
+  if (!abroad && (s.applicant_type === "continuing" || AFTER_ADMISSION.has(s.id)))
+    return "You apply after a university there has admitted or enrolled you, not from Pakistan beforehand.";
+  return null;
+}
+
 const FITS: Fit[] = ["VERIFIED_FIT", "POTENTIAL_FIT", "NEEDS_CONFIRMATION", "LIKELY_INELIGIBLE", "NOT_ELIGIBLE", "CLOSED"];
 
 export function classify(s: Scholarship, reqs: Requirement[], p: Profile, today: string): FitItem {
@@ -88,6 +111,9 @@ export function classify(s: Scholarship, reqs: Requirement[], p: Profile, today:
     notMet: a.results.filter((r) => r.applicable && r.status === "NOT_MET"),
     missing: a.results.filter((r) => r.applicable && r.status === "UNKNOWN"),
     review: a.results.filter((r) => r.applicable && r.status === "NEEDS_REVIEW"),
+    timing: timingOf(s, p),
+    sourceCheckedAt: s.source_checked_at ?? null,
+    sourceCheck: s.source_check ?? null,
   };
 }
 
@@ -98,7 +124,7 @@ export function missingProfile(p: Profile): string[] {
   if (!p.targetLevel) out.push("the degree you want");
   if (!p.highestCompleted) out.push("your highest completed qualification");
   if (!p.grade) out.push("your grades (CGPA or percentage)");
-  if (!p.languageTests?.length) out.push("language test results (or that you have none yet)");
+  if (!p.languageTests?.length && !p.languageStatus) out.push("language test results (or that you have none yet)");
   if (p.gapYears === undefined) out.push("your study gap");
   if (p.budgetPkr === undefined) out.push("your budget");
   return out;
@@ -115,7 +141,7 @@ export function evaluateRoute(p: Profile, scholarships: Scholarship[], reqs: Req
     .filter((s) => targets.includes(s.country))
     .filter((s) => !level || !s.levels?.length || s.levels.includes(level))
     .map((s) => classify(s, byId.get(s.id) ?? [], p, today))
-    .sort((a, b) => FITS.indexOf(a.fit) - FITS.indexOf(b.fit) || a.name.localeCompare(b.name));
+    .sort((a, b) => FITS.indexOf(a.fit) - FITS.indexOf(b.fit) || Number(!!a.timing) - Number(!!b.timing) || fundRank(a, p) - fundRank(b, p) || soonest(a) - soonest(b) || a.name.localeCompare(b.name));
 
   const routes: RouteSummary[] = targets.map((country) => {
     const mine = items.filter((i) => i.country === country);
@@ -129,16 +155,7 @@ export function evaluateRoute(p: Profile, scholarships: Scholarship[], reqs: Req
   });
 
   const missing = missingProfile(p);
-  const nextActions: RouteResult["nextActions"] = [];
-  if (missing.length) nextActions.push({ title: "Fill in what's missing", why: `We couldn't check some rules without ${missing.slice(0, 3).join(", ")}.` });
-  if (!p.languageTests?.length) nextActions.push({ title: "Plan a language test", why: "Most awards ask for IELTS/TOEFL (or HSK for Chinese-taught programmes). Check which one your programme accepts." });
-  if (p.journey === "applying_from_pakistan" || !p.journey)
-    nextActions.push({ title: "Start document attestation early", why: "HEC degree attestation and IBCC equivalence take time; most calls ask for attested copies." });
-  if (items.some((i) => i.fit === "POTENTIAL_FIT" || i.fit === "VERIFIED_FIT"))
-    nextActions.push({ title: "Check the official page of each potential fit", why: "Records not yet confirmed by a reviewer are leads: confirm the deadline and rules yourself before applying." });
-  if (p.needsRenewal) nextActions.push({ title: "Track your renewal as an application", why: "Add your annual review deadline and documents so they appear on your dashboard." });
-  nextActions.push({ title: "Plan the real cost", why: "See costs with and without a scholarship and the cash you need before arrival.", to: "/costs" });
-
+  const nextActions = guidance(p, targets, items, missing);
   return {
     items,
     routes,
@@ -146,4 +163,41 @@ export function evaluateRoute(p: Profile, scholarships: Scholarship[], reqs: Req
     missingProfile: missing,
     note: "This shows which published rules you meet. It is not a chance of admission, a scholarship or a visa.",
   };
+}
+
+/**
+ * Next steps for this student's situation and countries. Procedural only, each pointing at the official body;
+ * fees, amounts and dates are deliberately left to the official pages.
+ */
+export function guidance(p: Profile, targets: Country[], items: FitItem[], missing: string[]): NextAction[] {
+  const out: NextAction[] = [];
+  const abroad = !!p.journey && ABROAD.has(p.journey);
+  if (missing.length) out.push({ title: "Fill in what's missing", why: `We couldn't check some rules without ${missing.slice(0, 3).join(", ")}.` });
+  if (items.some((i) => i.fit === "POTENTIAL_FIT" || i.fit === "VERIFIED_FIT"))
+    out.push({ title: "Open the official page of each potential fit", why: "Records not yet confirmed by a reviewer are leads. Confirm the deadline and rules yourself before you apply." });
+
+  if (abroad) {
+    out.push({ title: "Ask your university's international office", why: "Awards for current students (university, city and province) are often announced to enrolled students first. Ask which ones you can apply for this year and when." });
+    if (p.hasExistingScholarship || p.needsRenewal)
+      out.push({ title: "Track your annual review like an application", why: "Renewals usually depend on grades, attendance and a yearly form. Add the review date and documents so they show on your dashboard." });
+  } else {
+    if (p.languageStatus === "moi")
+      out.push({ title: "Ask each university about your English-medium (MOI) letter", why: "Some universities accept a letter from your university saying you were taught in English instead of IELTS; many scholarships still want a test score. Ask in writing before you apply." });
+    if (!p.languageTests?.length)
+      out.push({ title: "Book a language test", why: "Most awards ask for IELTS, TOEFL or similar, or HSK/TOPIK for courses taught in Chinese or Korean. Check which test your programme accepts before you book." });
+    if (p.highestCompleted === "intermediate")
+      out.push({ title: "Get your intermediate certificate equivalence (IBCC)", why: "For a bachelor's abroad, your FSc/FA/A-level documents are normally checked by IBCC. Start early: it takes time.", href: "https://ibcc.edu.pk" });
+    else
+      out.push({ title: "Get your degree attested by HEC", why: "Most calls ask for HEC-attested degree and transcript copies. Start early: it takes time.", href: "https://www.hec.gov.pk" });
+  }
+
+  for (const c of targets) {
+    if (abroad && c === (p.currentCountry ?? (p.journey === "studying_in_china" ? "CN" : undefined))) continue;
+    if (c === "CN") out.push({ title: "China: CSC applications go through the Campus China portal", why: "Chinese Government Scholarships are applied for online, either through HEC nomination (Type A) or directly with a university (Type B). Each university sets its own deadline.", href: "https://www.campuschina.org" });
+    if (c === "DE") out.push({ title: "Germany: check admission rules and the visa money proof early", why: "Many master's programmes use uni-assist or their own portal, and the student visa needs proof that you can pay your living costs. Read the German Missions in Pakistan page.", href: "https://pakistan.diplo.de" });
+    if (c === "IT") out.push({ title: "Italy: pre-enrol on Universitaly", why: "Non-EU students pre-enrol on Universitaly before the study visa. Universities may also ask for a CIMEA statement or Declaration of Value for your degree.", href: "https://www.universitaly.it" });
+    if ((c as string) === "KR") out.push({ title: "Korea: Global Korea Scholarship (GKS)", why: "GKS is run by NIIED with an embassy track and a university track. Read the current year's guidelines on Study in Korea before choosing a track.", href: "https://www.studyinkorea.go.kr" });
+  }
+  out.push({ title: "Plan the real cost", why: "See costs with and without a scholarship and the cash you need before arrival.", to: "/costs" });
+  return out;
 }

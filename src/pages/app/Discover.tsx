@@ -5,6 +5,7 @@ import { Notice, Skeleton, stagger, useToast } from "../../components/ui";
 import { api, ApiError } from "../../lib/api";
 import { Link, useRouter } from "../../lib/router";
 import { COUNTRY, fmtDate, useApi } from "../../lib/use";
+import { useAuth } from "../../lib/auth";
 
 const ELIG: Record<string, [string, string]> = {
   LOOKS_POSSIBLE: ["Eligibility: looks possible", "b-warn"],
@@ -35,6 +36,7 @@ const Quote = ({ children }: { children: ReactNode }) => (
 );
 
 export function Discover() {
+  const isAdmin = useAuth().user?.role === "admin";
   const prof = useApi<{ profile: any }>("/me/profile");
   const status = useApi<any>("/me/discover/status");
   const latest = useApi<any>("/me/discover/latest");
@@ -86,7 +88,8 @@ export function Discover() {
         </div>
       </div>
 
-      {status.data && (
+      {/* Provider, quota and coverage details are operational: admins only. Students just search. */}
+      {status.data && isAdmin && (
         <Notice kind={status.data.openWebSearch ? "info" : "warn"}>
           {status.data.openWebSearch
             ? <span>Searching official websites with {status.data.provider} and Raasta's registered sources. Searches used this month: {status.data.usedThisMonth} of {status.data.monthlyCap} (a hard stop keeps it free).</span>

@@ -73,3 +73,40 @@ describe("route evaluation", () => {
     expect(JSON.stringify(r)).not.toMatch(/probabilit|chance of (getting|winning)|%/i);
   });
 });
+
+describe("Pakistan exclusions, timing and guidance", () => {
+  it("a residence-based country list (DAAD selector) excludes applicants living in Pakistan, not Pakistanis abroad", () => {
+    const daad = [req("r", { kind: "residence_excluded", countries: ["PK"] })];
+    expect(classify(sch({ country: "DE" }), daad, pk, T).fit).toBe("LIKELY_INELIGIBLE");
+    const abroad = { ...pk, journey: "studying_in_germany_italy" as const, currentCountry: "IT" as const };
+    expect(classify(sch({ country: "DE" }), daad, abroad, T).fit).not.toBe("LIKELY_INELIGIBLE");
+    expect(classify(sch({ country: "DE" }), daad, { nationality: "PK", targetLevel: "master" }, T).fit).toBe("NEEDS_CONFIRMATION");
+  });
+
+  it("a nationality left off a published list is likely ineligible; others must still check the list", () => {
+    const maeci = [req("n", { kind: "nationality_excluded", countries: ["PK"] })];
+    expect(classify(sch(), maeci, pk, T).fit).toBe("LIKELY_INELIGIBLE");
+    expect(classify(sch(), maeci, { ...pk, nationality: "IN" }, T).fit).toBe("NEEDS_CONFIRMATION");
+  });
+
+  it("students already abroad see new-applicant awards with a caveat, and no 'book a language test' step", () => {
+    const hamza = { nationality: "PK", journey: "studying_in_china" as const, currentCountry: "CN" as const, targetLevel: "bachelor" as const };
+    const r = evaluateRoute(hamza, [sch({ country: "CN", levels: ["bachelor"] })], [], T);
+    expect(r.items[0].timing).toMatch(/new applicants/);
+    expect(r.nextActions.map((n) => n.title).join(" ")).not.toMatch(/language test/i);
+    expect(r.nextActions.some((n) => /international office/i.test(n.title))).toBe(true);
+  });
+
+  it("awards you apply for after admission are labelled for applicants still in Pakistan", () => {
+    const r = evaluateRoute(pk, [sch({ id: "de-deutschlandstipendium", country: "DE", applicant_type: "both" })], [], T);
+    expect(r.items[0].timing).toMatch(/after a university/);
+  });
+
+  it("guidance is specific to the qualification and country, with official links and no amounts", () => {
+    const fsc = { ...pk, targetLevel: "bachelor" as const, highestCompleted: "intermediate" as const, targetCountries: ["IT" as const] };
+    const g = evaluateRoute(fsc, [], [], T).nextActions;
+    expect(g.some((n) => n.href === "https://ibcc.edu.pk")).toBe(true);
+    expect(g.some((n) => n.href === "https://www.universitaly.it")).toBe(true);
+    expect(g.map((n) => n.why).join(" ")).not.toMatch(/\d{3,}|€|PKR|EUR/);
+  });
+});

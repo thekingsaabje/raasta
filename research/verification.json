@@ -1742,7 +1742,10 @@
           "excerpt_verbatim": "If your status and/or country is not included in the list, you cannot apply for this scholarship programme.",
           "source_url": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database/?origin=194&detail=50026200",
           "machine_rule": {
-            "kind": "manual"
+            "kind": "residence_excluded",
+            "countries": [
+              "PK"
+            ]
           },
           "applies_to": "applicants resident in Pakistan"
         },
@@ -1842,7 +1845,10 @@
           "excerpt_verbatim": "If your status and/or country is not included in the list, you cannot apply for this scholarship programme.",
           "source_url": "https://www2.daad.de/deutschland/stipendium/datenbank/en/21148-scholarship-database/?origin=194&detail=57742130",
           "machine_rule": {
-            "kind": "manual"
+            "kind": "residence_excluded",
+            "countries": [
+              "PK"
+            ]
           },
           "applies_to": "applicants resident in Pakistan"
         },
@@ -2544,7 +2550,10 @@
           "excerpt_verbatim": "Selection is based on citizenship. Applicants may apply for one country only.",
           "source_url": "https://www.esteri.it/wp-content/uploads/2026/03/Bando-26-27-ENG.pdf",
           "machine_rule": {
-            "kind": "manual"
+            "kind": "nationality_excluded",
+            "countries": [
+              "PK"
+            ]
           },
           "applies_to": "all applicants (2026-27 call)"
         },

@@ -82,7 +82,7 @@ function summary(s: Step, p: Profile): string | null {
     case "qualification": return p.highestCompleted ?? null;
     case "grades": return p.grade ? `${p.grade.value} (${p.grade.scale === "100" ? "%" : p.grade.scale === "german" ? "German scale" : `/${p.grade.scale}`})` : null;
     case "gap": return p.gapYears !== undefined ? `${p.gapYears} yr` : null;
-    case "language": return p.languageTests?.length ? p.languageTests.map((t) => `${t.test} ${t.score}`).join(", ") : null;
+    case "language": return p.languageTests?.length ? p.languageTests.map((t) => `${t.test} ${t.score}`).join(", ") : p.languageStatus === "planning" ? "Not yet" : p.languageStatus === "moi" ? "MOI letter" : null;
     case "personal": return p.nationality ?? null;
     case "budget": return p.budgetPkr !== undefined ? `PKR ${p.budgetPkr.toLocaleString("en-PK")}` : null;
   }
@@ -179,17 +179,19 @@ function Body({ step, p, set }: { step: Step; p: Profile; set: (fn: (p: Profile)
     case "language": {
       const tests = p.languageTests ?? [];
       return (
-        <Q title="Do you have a language test result?" help="Add each test you've taken. If you have none yet, just continue.">
-          {tests.map((t, k) => (
+        <Q title="Do you have a language test result?" help="Most scholarships ask for one. Tell us where you stand.">
+          <Choices label="Language test" value={p.languageStatus ?? (tests.length ? "has_result" : undefined)} options={[["has_result", "I have a result"], ["planning", "Not yet, I plan to take one"], ["moi", "No test, but my degree was taught in English"]] as const}
+            onPick={(v) => up({ languageStatus: v, languageTests: v === "has_result" ? (tests.length ? tests : [{ test: "IELTS", score: NaN }]) : [] })} />
+          {(p.languageStatus === "has_result" || (!p.languageStatus && tests.length > 0)) && tests.map((t, k) => (
             <div key={k} className="row" style={{ flexWrap: "nowrap" } as any}>
               <select aria-label="Test" className="input" value={t.test} onChange={(e) => up({ languageTests: tests.map((x, j) => (j === k ? { ...x, test: e.target.value } : x)) })}>
-                {["IELTS", "TOEFL", "PTE", "Duolingo", "HSK", "TestDaF", "Goethe", "CILS", "CELI"].map((x) => <option key={x}>{x}</option>)}
+                {["IELTS", "TOEFL", "PTE", "Duolingo", "HSK", "TOPIK", "TestDaF", "Goethe", "CILS", "CELI"].map((x) => <option key={x}>{x}</option>)}
               </select>
               <input aria-label="Score or level" className="input num" type="number" step="0.5" value={Number.isFinite(t.score) ? t.score : ""} placeholder="Score / level" onChange={(e) => up({ languageTests: tests.map((x, j) => (j === k ? { ...x, score: Number(e.target.value) } : x)) })} />
               <button className="btn btn-soft icon-btn" aria-label="Remove test" onClick={() => up({ languageTests: tests.filter((_, j) => j !== k) })}><Trash2 size={14} /></button>
             </div>
           ))}
-          <button className="btn btn-soft btn-sm" style={{ alignSelf: "flex-start" }} onClick={() => up({ languageTests: [...tests, { test: "IELTS", score: NaN }] })}><Plus size={14} />Add a test</button>
+          {(p.languageStatus === "has_result" || (!p.languageStatus && tests.length > 0)) && <button className="btn btn-soft btn-sm" style={{ alignSelf: "flex-start" }} onClick={() => up({ languageTests: [...tests, { test: "IELTS", score: NaN }] })}><Plus size={14} />Add another test</button>}
         </Q>
       );
     }
@@ -205,6 +207,7 @@ function Body({ step, p, set }: { step: Step; p: Profile; set: (fn: (p: Profile)
     case "budget":
       return (
         <Q title="Roughly how much can you put towards your studies?" help="Your own and legitimate family support, in total. A rough figure is fine; we never ask for bank statements.">
+          <Choices label="Funding you need" value={p.fundingNeed} options={[["full_only", "I can only go with full funding"], ["partial_ok", "Partial funding could work"]] as const} onPick={(v) => up({ fundingNeed: v })} />
           <label className="field" style={{ maxWidth: 300 }}><span>Budget (PKR)</span><input className="input num" type="number" min={0} value={p.budgetPkr ?? ""} onChange={(e) => up({ budgetPkr: num(e.target.value) })} placeholder="e.g. 2,000,000" /></label>
         </Q>
       );

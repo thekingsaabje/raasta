@@ -21,20 +21,43 @@ const OPP: Record<string, { label: string; cls: string; icon: ReactNode; explain
   VERIFIED_UPCOMING: { label: "Upcoming · confirmed", cls: "b-info", icon: <ShieldCheck size={13} />, explain: "A reviewer checked the current call: it opens later." },
   VERIFIED_CLOSED: { label: "Closed · confirmed", cls: "b-neutral", icon: <ShieldCheck size={13} />, explain: "A reviewer checked: this round has closed. Watch for the next call." },
   CANCELLED: { label: "Cancelled", cls: "b-bad", icon: <XCircle size={13} />, explain: "The provider has cancelled this call." },
-  NEEDS_REVIEW: { label: "Needs verification", cls: "b-warn", icon: <Clock size={13} />, explain: "Not yet confirmed by a reviewer. Treat it as a lead and check the official page." },
+  NEEDS_REVIEW: { label: "Status to be confirmed", cls: "b-neutral", icon: <Clock size={13} />, explain: "We haven't found the current call on the official page yet. Check the official page." },
   CONFLICTING_SOURCES: { label: "Conflicting information", cls: "b-bad", icon: <AlertTriangle size={13} />, explain: "Official sources disagree; we keep both until a reviewer resolves it." },
   UNKNOWN: { label: "Status unknown", cls: "b-neutral", icon: <CircleHelp size={13} />, explain: "We don't know the current status." },
 };
+/** What the official page shows (research evidence), before a reviewer signs it off. */
 const LOOKS: Record<string, { label: string; cls: string }> = {
-  open: { label: "Looks open · not yet verified", cls: "b-warn" },
-  upcoming: { label: "Looks upcoming · not yet verified", cls: "b-warn" },
-  closed: { label: "Looks closed · not yet verified", cls: "b-neutral" },
+  open: { label: "Open · per official page", cls: "b-info" },
+  upcoming: { label: "Opens soon · per official page", cls: "b-info" },
+  closed: { label: "Closed · per official page", cls: "b-neutral" },
 };
+const SHORT = { open: "Open", upcoming: "Opens soon", closed: "Closed" } as Record<string, string>;
+const FRESH_DAYS = 14;
+
+/** The automatic checker re-read the official page recently and found our stored quotes there. */
+export function freshCheck(checkedAt?: string | null, check?: string | null): string | null {
+  if (!checkedAt || !check) return null;
+  try {
+    const r = JSON.parse(check).result;
+    if (r !== "matches" && r !== "partly") return null;
+  } catch {
+    return null;
+  }
+  return Date.now() - Date.parse(checkedAt) <= FRESH_DAYS * 86_400_000 ? checkedAt : null;
+}
+const shortDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 export const statusExplain = (status: string) => (OPP[status] ?? OPP.UNKNOWN).explain;
 
-export function StatusBadge({ status, cycle, reason }: { status: string; method?: string | null; cycle?: string | null; reason?: string | null }) {
+export function StatusBadge({ status, cycle, reason, checkedAt, check }: { status: string; method?: string | null; cycle?: string | null; reason?: string | null; checkedAt?: string | null; check?: string | null }) {
   const s = OPP[status] ?? OPP.UNKNOWN;
   const looks = status === "NEEDS_REVIEW" && cycle ? LOOKS[cycle] : undefined;
+  const fresh = looks && cycle ? freshCheck(checkedAt, check) : null;
+  if (fresh && cycle)
+    return (
+      <span className={`badge ${cycle === "closed" ? "b-neutral" : "b-ok"}`} title={`Raasta's checker re-read the official page on ${shortDate(fresh)} and found the quoted text. A reviewer hasn't signed it off yet. ${reason ?? ""}`.trim()}>
+        <ShieldCheck size={13} />{SHORT[cycle]} · checked {shortDate(fresh)}
+      </span>
+    );
   return (
     <span className={`badge ${looks?.cls ?? s.cls}`} title={reason ?? s.explain}>
       {s.icon}{looks?.label ?? s.label}

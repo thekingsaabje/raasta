@@ -72,6 +72,9 @@ export interface Scholarship {
   proposed_deadline?: string | null;
   /** Plain-English reason the record is not reviewer-confirmed. */
   status_reason?: string | null;
+  /** Automatic official-page quote check (evidence only). */
+  source_checked_at?: string | null;
+  source_check?: string | null;
   funding_class?: FundingClass;
   monitor_url?: string | null;
 }
@@ -116,6 +119,10 @@ export type FundingClass = (typeof FUNDING_CLASSES)[number];
 export type Rule = RuleBody & { forLevels?: Level[] };
 export type RuleBody =
   | { kind: "nationality"; allowed: string[] }
+  /** Published country lists that leave a country out (e.g. Pakistan not on the MAECI list). */
+  | { kind: "nationality_excluded"; countries: string[] }
+  /** Programmes chosen by the country you live in and apply from (e.g. DAAD's country selector). */
+  | { kind: "residence_excluded"; countries: string[] }
   | { kind: "target_level"; levels: Level[] }
   | { kind: "degree_completed"; level: "intermediate" | Level }
   | { kind: "min_grade"; scale: "4" | "5" | "100" | "german"; min: number }

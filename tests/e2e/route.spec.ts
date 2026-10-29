@@ -6,7 +6,7 @@ import { expect, test } from "@playwright/test";
 test("study route: adaptive questions, saved progress, results with evidence, roadmap after sign-up", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => localStorage.clear());
-  await page.getByRole("link", { name: /Check eligibility/ }).first().click();
+  await page.getByRole("link", { name: /Find my scholarships/ }).first().click();
   await expect(page).toHaveURL(/\/route$/);
   await expect(page.getByRole("heading", { name: "Where are you right now?" })).toBeVisible();
   const next = () => page.getByRole("button", { name: /^Continue|See my study routes/ }).click();
@@ -36,9 +36,11 @@ test("study route: adaptive questions, saved progress, results with evidence, ro
   await page.getByLabel("Your grade").fill("3.1");
   await next(); // gap
   await page.getByRole("radio", { name: "No gap" }).click();
-  await next(); // language: none yet
+  await next(); // language
+  await page.getByRole("radio", { name: "Not yet, I plan to take one" }).click();
   await next(); // personal details: optional
   await next(); // budget, last question
+  await page.getByRole("radio", { name: "Partial funding could work" }).click();
   await page.getByLabel("Budget (PKR)").fill("3000000");
   await next();
 
@@ -48,7 +50,7 @@ test("study route: adaptive questions, saved progress, results with evidence, ro
   await expect(page.getByText(/estimate/i).first()).toBeVisible();
   await expect(page.getByText(/\d\s?%/)).toHaveCount(0); // never probabilities
   // No record is reviewer-confirmed yet, so nothing may appear as a verified fit.
-  await expect(page.getByRole("heading", { name: /Verified fits \(0\)/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Confirmed fits/ })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: /Potential fits|Needs confirmation/ }).first()).toBeVisible();
   await page.getByRole("button", { name: "Evidence" }).first().click();
   await expect(page.getByRole("link", { name: /source|official/i }).first()).toBeVisible();
