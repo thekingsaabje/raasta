@@ -1,3 +1,4 @@
+import { FileCheck2 } from "lucide-react";
 import { Page } from "../components/Layout";
 import { EligBadge, Reveal, StatusBadge } from "../components/ui";
 
@@ -10,7 +11,7 @@ export function HowItWorks() {
           {[
             ["Official sources first", "The body that decides: provider, university, ministry, embassy, HEC, CSC, DAAD or the regional DSU office. Forums and agents are leads, never evidence."],
             ["One rule at a time", "Nationality, degree, grades, age, language, existing-scholarship limits, coverage, route and deadline: each stored separately with a verbatim quote, link and date."],
-            ["Only people verify", "Research collects word-for-word quotes from official pages, but that never makes a record verified. Until a reviewer confirms it, a record says “Looks open · not yet verified” or “Needs verification”."],
+            ["Only people confirm", "Research collects word-for-word quotes from official pages, and a free checker re-reads those pages to make sure the quotes are still there. Only a Raasta reviewer can mark a record “confirmed”."],
             ["Monitoring and corrections", "Official pages are re-checked several times a day. A change opens a review task; a failed fetch never changes a status. Corrections keep history and notify students."],
           ].map(([t, d]) => <div key={t} style={{ paddingRight: 20 }}><h3 style={{ marginBottom: 8 }}>{t}</h3><p className="muted" style={{ fontSize: 15 }}>{d}</p></div>)}
         </div>
@@ -21,11 +22,12 @@ export function HowItWorks() {
               ["VERIFIED_OPEN", "", "A Raasta reviewer checked the current official call: applications are open."],
               ["VERIFIED_UPCOMING", "", "A reviewer checked: the application window opens later."],
               ["VERIFIED_CLOSED", "", "A reviewer checked: this round has closed. Watch for the next call."],
-              ["NEEDS_REVIEW", "open", "Our research quoted the official page and it appears open, but no reviewer has confirmed it. A preliminary lead only."],
-              ["NEEDS_REVIEW", "closed", "The official page appears to show a closed round; not yet confirmed."],
-              ["NEEDS_REVIEW", "", "We couldn't tie the record to a current official call yet. Check the official page."],
+              ["NEEDS_REVIEW", "open", "The official page shows the call as open (we quote it), but a reviewer hasn't signed it off. Check the page before you apply."],
+              ["NEEDS_REVIEW", "closed", "The official page shows this round as closed, or its deadline has passed."],
+              ["NEEDS_REVIEW", "", "We haven't found the current call on the official page yet. Check the official page."],
               ["CONFLICTING_SOURCES", "", "Official sources disagree; both are kept until a reviewer resolves it."],
             ].map(([s, cy, d]) => <div key={s + cy} className="legend-row" style={{ borderTop: "1px solid var(--line)" }}><StatusBadge status={s} cycle={cy || null} /><span className="muted" style={{ fontSize: 15 }}>{d}</span></div>)}
+            <div className="legend-row" style={{ borderTop: "1px solid var(--line)" }}><span className="badge b-neutral"><FileCheck2 size={13} />Quotes re-checked</span><span className="muted" style={{ fontSize: 15 }}>Our automatic checker re-read the official page recently and found every quoted sentence still there. It does not confirm that a call is open.</span></div>
             <div style={{ height: 18 }} />
             {[
               ["MET", "Your profile satisfies this published rule."],

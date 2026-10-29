@@ -1,3 +1,63 @@
+# Raasta — session 7 report: students' view, typography, official-page checker, South Korea (2026-10-29)
+
+**Status: committed on `dev` and pushed. NOT live yet.** The production deploy was blocked by the safety check and needs the founder's approval (steps in HANDOFF.md).
+
+## What changed
+- **Five-student audit.** See AUDIT-STUDENTS.md for each student's problems and the fixes.
+- **Honest matching.**
+  - DAAD's two master's programmes and MAECI now show as "likely not eligible" for applicants in Pakistan. Each shows the official quote. This uses new rule kinds `residence_excluded` and `nationality_excluded`, and `seed/rule-fixes-2026-10-29.sql` updates the database safely.
+  - Awards you apply for after admission are labelled as such.
+  - New-applicant awards carry a note for students already studying abroad.
+  - An open call whose official deadline has passed now shows as closed.
+- **Guidance.**
+  - Next steps now depend on the student's situation and country, each with the official link. Examples: IBCC or HEC attestation, Campus China, German missions, Universitaly/CIMEA, GKS, international office, and renewals. No fees or amounts are given.
+  - Every scholarship page has a new "How to apply, step by step" section, with suggested dates counted back from the deadline.
+- **Questions.**
+  - The language question can now be answered "not yet" or "my degree was taught in English (MOI)".
+  - A new funding-need question ("full funding only") orders the results. Results sort by soonest deadline.
+- **Look.** Headings use Bricolage Grotesque and text uses Figtree, both self-hosted. The homepage's main button is "Find my scholarships" (the guided route) again.
+- **Labels (founder request).** "Not yet verified" is gone from student pages. Students now see:
+  - "Open · per official page" for research evidence;
+  - "Quotes re-checked <date>" when the free checker found every stored quote on the official page within the last 14 days;
+  - "Open · confirmed" only when a reviewer has checked the record.
+  - Internal notices (the Tavily quota and research notes) are now shown to admins only.
+- **Free official-page checker** (`worker/quotecheck.ts`).
+  - It runs with the 4-hourly scheduled job, 5 records per run, so it covers the catalogue in about 1.5 days.
+  - Admins can run it for one record with "check now".
+  - It does deterministic text matching only, with no AI and no paid service. It never changes a status, and missing quotes open a review task.
+- **South Korea.**
+  - "KR" is supported everywhere in the app, including KRW exchange rates.
+  - Two GKS records (undergraduate and graduate) come from Study in Korea, NIIED's official site. Quotes were checked word for word against the raw page text.
+  - Both are NEEDS_REVIEW. The 2026 graduate round is closed (results were published on 1 Jul 2026). For the 2027 undergraduate call, guidelines were posted on 9 Sep 2026, and the deadline and Pakistan's eligibility are in the guidelines PDF, which I haven't downloaded.
+  - There are no Korean cost figures yet; the route says "Not enough official figures".
+- **Libraries (all free, no account needed).**
+  - minisearch (MIT): typo-tolerant catalogue search.
+  - @axe-core/playwright (MPL-2.0): automated accessibility checks on 6 pages.
+  - @fontsource-variable fonts (OFL).
+  - Services that would need an account or key (for example Sentry, PostHog, Algolia) were not added. They need your approval.
+- **Bugs fixed.**
+  - A slow, older request could overwrite newer filtered results. The shared `useApi` hook now keeps only the latest response.
+  - Grey text had too little contrast, and table ARIA markup confused screen readers. Both now pass the axe audit with no serious or critical issues.
+
+## Database safety (Korea migration 0007)
+- The first version would have **deleted all 224 eligibility rules**: dropping a table fires the cascade links to its child tables. The rehearsal on a production copy caught it, and nothing reached production.
+- A second version renamed tables, which rewired the child links to the renamed copy. That was also caught in rehearsal.
+- The final version copies the linked rows aside, rebuilds the table in place without renaming it, and restores the rows.
+  - It was rehearsed on the production backup and on the local database (125 applications, 889 tasks).
+  - Every table was identical row for row before and after, and `foreign_key_check` was empty. The tool is `scripts/compare-db-dump.mjs`.
+
+## Tests
+- Unit and API tests: 144 passed. Typecheck clean.
+- Playwright on the local site: 40/40 on desktop and mobile, including the new route spec and accessibility spec.
+- Live site: not run, because nothing is deployed yet.
+
+## Needs the founder
+1. Approve the production deploy (steps in HANDOFF.md).
+2. Allow downloading "2027 GKS-U Application Guidelines (English) 0914.pdf" (Study in Korea notice of 9 Sep 2026, about 1.4 MB). It would let me fill in the Korean deadlines and Pakistan's eligibility.
+3. Confirm records in Admin → Scholarships. Until a reviewer confirms a record, nothing on the site shows as "confirmed".
+
+---
+
 # Raasta: session 6b, PDF calls and China sources (2026-10-27)
 
 **Status: LIVE** (version `94a6a31c`). Backup: `backups/raasta-db-pre-pdf-china-2026-10-27.sql`. No schema change.

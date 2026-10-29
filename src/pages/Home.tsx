@@ -5,6 +5,7 @@ import {
   MessageSquareQuote, PenLine, Quote, RefreshCw, Route as RouteIcon, Search, ShieldCheck, Sparkles, Wallet, X,
 } from "lucide-react";
 import { Link } from "../lib/router";
+import { effectiveCycle } from "../../shared/cycle";
 import { COUNTRY, fmtDate, useApi } from "../lib/use";
 import { Logo } from "../components/Layout";
 import { initials } from "../components/ScholarshipCard";
@@ -129,7 +130,7 @@ function Hero({ featured }: { featured: any[] }) {
 type Chip = { key: string; label: string; test: (s: any) => boolean; mint?: boolean };
 const CHIPS: Chip[] = [
   { key: "all", label: "All", test: () => true },
-  { key: "open", label: "Looks open now", mint: true, test: (s) => s.cycle_state === "open" || s.cycle_state === "upcoming" || s.status === "VERIFIED_OPEN" || s.status === "VERIFIED_UPCOMING" },
+  { key: "open", label: "Open now", mint: true, test: (s) => ["open", "upcoming"].includes(effectiveCycle(s.cycle_state, s.proposed_deadline)) || s.status === "VERIFIED_OPEN" || s.status === "VERIFIED_UPCOMING" },
   { key: "full", label: "Full funding", mint: true, test: (s) => s.funding_class === "full" },
   { key: "CN", label: "China", test: (s) => s.country === "CN" },
   { key: "DE", label: "Germany", test: (s) => s.country === "DE" },

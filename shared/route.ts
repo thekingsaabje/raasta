@@ -1,6 +1,7 @@
 // Study-route evaluation: deterministic, built on the eligibility engine. No probabilities, no LLM.
 import { assess, type RuleResult } from "./eligibility";
 import type { Profile } from "./profile";
+import { effectiveCycle } from "./cycle";
 import type { Country, Level, Requirement, Scholarship } from "./types";
 
 /**
@@ -78,7 +79,8 @@ export function classify(s: Scholarship, reqs: Requirement[], p: Profile, today:
   const decisive = a.results.filter((r) => r.mandatory && r.applicable && r.scope === "scholarship_eligibility");
   const notMet = decisive.filter((r) => r.status === "NOT_MET");
   const confirmedByReviewer = s.verification_method === "human" && s.status.startsWith("VERIFIED_");
-  const closed = s.status === "VERIFIED_CLOSED" || s.status === "CANCELLED" || (!confirmedByReviewer && s.cycle_state === "closed");
+  const cycle = effectiveCycle(s.cycle_state ?? "unknown", s.proposed_deadline, today); // passed official deadline → closed
+  const closed = s.status === "VERIFIED_CLOSED" || s.status === "CANCELLED" || (!confirmedByReviewer && cycle === "closed");
   // "Read it yourself" conditions we could not turn into a check don't block a potential fit; they are listed for the
   // student. Substantive review items (grade equivalence, conflicting sources, applicant type…) do.
   const isManual = (r: RuleResult) => r.reason === MANUAL_REASON;
@@ -103,7 +105,7 @@ export function classify(s: Scholarship, reqs: Requirement[], p: Profile, today:
     fit,
     confirmedByReviewer,
     status: s.status,
-    cycleState: s.cycle_state ?? "unknown",
+    cycleState: cycle,
     statusReason: s.status_reason ?? null,
     deadline: { date: dl, confirmed: confirmedByReviewer && !!s.deadline_date },
     fundingClass: s.funding_class ?? "unknown",

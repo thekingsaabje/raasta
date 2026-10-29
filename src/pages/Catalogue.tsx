@@ -134,7 +134,7 @@ export function CatalogueTable({ limit, syncUrl }: { limit?: number; syncUrl?: b
             <tbody>
               {[
                 ["Country", (s: any) => COUNTRY[s.country]?.name],
-                ["Verification", (s: any) => <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} checkedAt={s.source_checked_at} check={s.source_check} />],
+                ["Verification", (s: any) => <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} checkedAt={s.source_checked_at} check={s.source_check} deadline={s.proposed_deadline} />],
                 ["Your eligibility", (s: any) => (eligMap[s.id] ? <EligBadge status={eligMap[s.id]} /> : user ? "—" : <Link to="/route">Check my fit</Link>)],
                 ["Levels", (s: any) => (s.levels ?? []).join(", ") || "—"],
                 ["Funding type", (s: any) => FUNDING_LABEL[(s.funding_class ?? "unknown") as keyof typeof FUNDING_LABEL]],

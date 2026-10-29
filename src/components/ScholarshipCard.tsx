@@ -50,9 +50,9 @@ export function ScholarshipRow({ s, elig, onCompare, comparing }: { s: any; elig
       </div>
       <div role="cell" className="c-fund"><span className={`fund ${fc === "unknown" ? "unknown" : ""}`}>{FUNDING_LABEL[fc]}</span></div>
       <div role="cell" className="c-dead"><div className="num" style={{ fontSize: 14, fontWeight: 500 }}>{d.main}</div>{d.sub && <div className="tiny clamp1" title={d.sub}>{d.sub}</div>}</div>
-      <div role="cell" className="c-status">{elig ? <EligBadge status={elig} /> : <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} checkedAt={s.source_checked_at} check={s.source_check} />}</div>
+      <div role="cell" className="c-status">{elig ? <EligBadge status={elig} /> : <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} checkedAt={s.source_checked_at} check={s.source_check} deadline={s.proposed_deadline} />}</div>
       <div role="cell" className="c-meta">
-        {elig ? <EligBadge status={elig} /> : <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} checkedAt={s.source_checked_at} check={s.source_check} />}
+        {elig ? <EligBadge status={elig} /> : <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} checkedAt={s.source_checked_at} check={s.source_check} deadline={s.proposed_deadline} />}
         <span className={`fund ${fc === "unknown" ? "unknown" : ""}`} style={{ fontSize: 13 }}>{FUNDING_LABEL[fc]}</span>
         <span className="tiny">Deadline: {d.main}</span>
       </div>

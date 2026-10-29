@@ -282,7 +282,7 @@ function StepBody({ step, answers: a, set, refs, scholarships }: { step: StepId;
               return (
                 <button key={s.id} type="button" className="choice" role="checkbox" aria-checked={on} onClick={() => toggle(s)} style={{ justifyContent: "space-between", textAlign: "left" }}>
                   <span className="row" style={{ "--gap": "10px", flexWrap: "nowrap" } as any}><span className="choice-dot" aria-hidden>{on && <Check size={12} strokeWidth={3} />}</span><span><strong style={{ fontSize: 14.5 }}>{s.name}</strong><br /><span className="tiny">{FUNDING_LABEL[(s.funding_class ?? "unknown") as keyof typeof FUNDING_LABEL]}</span></span></span>
-                  <span style={{ flexShrink: 0 }}><StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} checkedAt={s.source_checked_at} check={s.source_check} /></span>
+                  <span style={{ flexShrink: 0 }}><StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} checkedAt={s.source_checked_at} check={s.source_check} deadline={s.proposed_deadline} /></span>
                 </button>
               );
             })}

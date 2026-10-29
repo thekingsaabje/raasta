@@ -14,8 +14,11 @@ Forums, social media, agents and unofficial directories: **discovery only**, nev
   verifies anything.
 - Research evidence is kept separately and labelled as such: `cycle_state` (what the official page appears to show),
   `proposed_deadline` and `status_reason` (plain English), with verbatim quotes fetched as raw text
-  (`verification_method='agent_evidence'`). Students see "Looks open · not yet verified"; the assessment lists these
-  records as preliminary leads, never as verified fits.
+  (`verification_method='agent_evidence'`). Students see "Open · per official page" (wording the founder chose on
+  2026-10-29); the assessment lists these records as potential fits, never as confirmed fits.
+- Automatic quote check (`worker/quotecheck.ts`, cron): re-reads official pages and looks for every stored quote. All found
+  → "Quotes re-checked <date>" for 14 days. It proves the sentences are still there, not that a call is open; it never
+  changes a status; missing quotes open a `source_changed` review task. A passed proposed deadline displays as closed.
 - `VERIFIED_CLOSED` = official page states a passed deadline for a named cycle and no newer call exists.
   `VERIFIED_UPCOMING`/`OPEN` need current-cycle dates on the official page (API enforces a checked date for human edits).
 - Rules are `VERIFIED` (able to rule a student out) only after an admin confirms the quote against the current official

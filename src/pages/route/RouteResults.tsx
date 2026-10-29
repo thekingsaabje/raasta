@@ -90,7 +90,7 @@ export function RouteResults({ data, selected, toggle, onEdit, onPlan, onSave, s
                       <Link to={`/scholarships/${i.id}`} style={{ fontWeight: 600, fontSize: 15 }}>{i.name}</Link>
                     </div>
                     <div className="row" style={{ "--gap": "6px" } as any}>
-                      <StatusBadge status={i.status} cycle={i.cycleState} reason={i.statusReason} checkedAt={i.sourceCheckedAt} check={i.sourceCheck} />
+                      <StatusBadge status={i.status} cycle={i.cycleState} reason={i.statusReason} checkedAt={i.sourceCheckedAt} check={i.sourceCheck} deadline={i.deadline.date} />
                       {i.deadline.date && <span className="tiny num">Deadline {fmtDate(i.deadline.date)} · {i.deadline.confirmed ? "confirmed" : "not confirmed"}</span>}
                       <span className="tiny">{i.met.length} met · {i.notMet.length} not met · {i.missing.length} missing · {i.review.length} to check</span>
                     </div>

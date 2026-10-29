@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, type Variants } from "motion/react";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { AlertTriangle, CheckCircle2, CircleHelp, Clock, FlaskConical, HelpCircle, ShieldCheck, X, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CircleHelp, Clock, FileCheck2, FlaskConical, HelpCircle, ShieldCheck, X, XCircle } from "lucide-react";
+import { effectiveCycle } from "../../shared/cycle";
 
 export function Reveal({ children, delay = 0, y = 18, className }: { children: ReactNode; delay?: number; y?: number; className?: string }) {
   return (
@@ -31,15 +32,13 @@ const LOOKS: Record<string, { label: string; cls: string }> = {
   upcoming: { label: "Opens soon · per official page", cls: "b-info" },
   closed: { label: "Closed · per official page", cls: "b-neutral" },
 };
-const SHORT = { open: "Open", upcoming: "Opens soon", closed: "Closed" } as Record<string, string>;
 const FRESH_DAYS = 14;
 
 /** The automatic checker re-read the official page recently and found our stored quotes there. */
 export function freshCheck(checkedAt?: string | null, check?: string | null): string | null {
   if (!checkedAt || !check) return null;
   try {
-    const r = JSON.parse(check).result;
-    if (r !== "matches" && r !== "partly") return null;
+    if (JSON.parse(check).result !== "matches") return null; // every stored quote found, not just some
   } catch {
     return null;
   }
@@ -48,20 +47,19 @@ export function freshCheck(checkedAt?: string | null, check?: string | null): st
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 export const statusExplain = (status: string) => (OPP[status] ?? OPP.UNKNOWN).explain;
 
-export function StatusBadge({ status, cycle, reason, checkedAt, check }: { status: string; method?: string | null; cycle?: string | null; reason?: string | null; checkedAt?: string | null; check?: string | null }) {
+export function StatusBadge({ status, cycle, reason, checkedAt, check, deadline }: { status: string; method?: string | null; cycle?: string | null; reason?: string | null; checkedAt?: string | null; check?: string | null; deadline?: string | null }) {
   const s = OPP[status] ?? OPP.UNKNOWN;
-  const looks = status === "NEEDS_REVIEW" && cycle ? LOOKS[cycle] : undefined;
-  const fresh = looks && cycle ? freshCheck(checkedAt, check) : null;
-  if (fresh && cycle)
-    return (
-      <span className={`badge ${cycle === "closed" ? "b-neutral" : "b-ok"}`} title={`Raasta's checker re-read the official page on ${shortDate(fresh)} and found the quoted text. A reviewer hasn't signed it off yet. ${reason ?? ""}`.trim()}>
-        <ShieldCheck size={13} />{SHORT[cycle]} · checked {shortDate(fresh)}
-      </span>
-    );
+  const cy = cycle ? effectiveCycle(cycle, deadline) : null; // a passed official deadline reads as closed
+  const looks = status === "NEEDS_REVIEW" && cy ? LOOKS[cy] : undefined;
+  const fresh = looks ? freshCheck(checkedAt, check) : null;
   return (
-    <span className={`badge ${looks?.cls ?? s.cls}`} title={reason ?? s.explain}>
-      {s.icon}{looks?.label ?? s.label}
-    </span>
+    <>
+      <span className={`badge ${looks?.cls ?? s.cls}`} title={cy !== cycle ? "The deadline on the official page has passed." : reason ?? s.explain}>
+        {s.icon}{looks?.label ?? s.label}
+      </span>
+      {/* The checker proves the quoted sentences are still on the page. It does not confirm the call is open. */}
+      {fresh && <span className="badge b-neutral" title={`On ${shortDate(fresh)} Raasta's automatic checker re-read the official page and found every quoted sentence still there. A reviewer hasn't signed this record off.`}><FileCheck2 size={13} />Quotes re-checked {shortDate(fresh)}</span>}
+    </>
   );
 }
 

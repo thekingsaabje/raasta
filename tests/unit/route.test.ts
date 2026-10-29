@@ -110,3 +110,15 @@ describe("Pakistan exclusions, timing and guidance", () => {
     expect(g.map((n) => n.why).join(" ")).not.toMatch(/\d{3,}|€|PKR|EUR/);
   });
 });
+
+describe("passed deadlines and the automatic quote check", () => {
+  it("an 'open' record whose official deadline has passed is CLOSED, even with a fresh quote check", () => {
+    const s = sch({ cycle_state: "open", proposed_deadline: "2026-10-01", source_checked_at: "2026-10-26T00:00:00Z", source_check: '{"result":"matches","found":3,"total":3}' });
+    const f = classify(s, [], pk, T);
+    expect(f.fit).toBe("CLOSED");
+    expect(f.cycleState).toBe("closed");
+  });
+  it("an open record with a future deadline stays open", () => {
+    expect(classify(sch({ cycle_state: "open", proposed_deadline: "2026-12-15" }), [], pk, T).cycleState).toBe("open");
+  });
+});

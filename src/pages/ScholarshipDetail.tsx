@@ -72,7 +72,7 @@ export function ScholarshipDetail({ id }: { id: string }) {
           </div>
           <h1 style={{ maxWidth: 860 }}>{s.name}</h1>
           <div className="row" style={{ "--gap": "8px" } as any}>
-            <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} checkedAt={s.source_checked_at} check={s.source_check} />
+            <StatusBadge status={s.status} cycle={s.cycle_state} reason={s.status_reason} checkedAt={s.source_checked_at} check={s.source_check} deadline={s.proposed_deadline} />
             {!!s.is_test_data && <TestBadge />}
             {assess.data && <EligBadge status={assess.data.assessment.overall} prefix="You" />}
           </div>
@@ -90,7 +90,7 @@ export function ScholarshipDetail({ id }: { id: string }) {
           <Notice kind={s.is_test_data ? "warn" : "info"}>
             {s.is_test_data
               ? "This is a TEST record used to demonstrate the eligibility engine. It is not a real opportunity."
-              : <><strong>Taken from the official page{freshCheck(s.source_checked_at, s.source_check) ? `, re-checked automatically on ${fmtDate(s.source_checked_at)}` : ""}.</strong> Every date and rule below is quoted word for word from the provider's own page. Rules can change between rounds, so open the official page and confirm before you apply.</>}
+              : <><strong>Taken from the official page{freshCheck(s.source_checked_at, s.source_check) ? `, re-checked automatically on ${fmtDate(s.source_checked_at)}` : ""}.</strong> Where we have the official sentence a rule or date came from, it is shown under it with a link. Some rules are short summaries, and details can change between rounds, so open the official page and confirm before you apply.</>}
           </Notice>
         </div>
       )}
