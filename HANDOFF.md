@@ -95,3 +95,7 @@ PKR 0. Workers Free + D1 free + GitHub free + firecrawl credits used by the rese
 - Researched (not added): vite-plugin-pwa (offline/install; never cache /api), HTMLRewriter for cheaper page parsing,
   `diff` for showing page changes to reviewers, unpdf (PDF text; likely too much CPU on the free plan; run locally),
   driver.js tour. Open scholarship datasets with open licences: none found.
+- LIVE since 2026-10-29 22:00 UTC (Worker da40d778). First hourly run 22:17 UTC worked: cn-cgs-type-a-hec partly 15/16
+  (deadline found), cn-cgs-csc-general unreadable (no quotes on a readable page). Scheduled run CPU 14 ms (free guideline
+  10 ms; it completed). The 20:17 run before this deploy wrote no quote results; cause not found (logs weren't recorded then).
+  Live e2e 40/40 (costs dashboard test flaky once, passed on re-run); test users cleaned.
